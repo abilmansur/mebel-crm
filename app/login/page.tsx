@@ -43,7 +43,7 @@ export default function LoginPage() {
         return;
       }
       if (data.user) {
-        await getOrCreateWorkspace(data.user.id, workspaceName.trim() || "Мой цех");
+        await getOrCreateWorkspace(data.user.id, workspaceName.trim() || "Мебельный цех");
       }
       router.push("/");
       router.refresh();
@@ -57,7 +57,7 @@ export default function LoginPage() {
       return;
     }
     if (signInData.user) {
-      await getOrCreateWorkspace(signInData.user.id, workspaceName.trim() || "Мой цех");
+      await getOrCreateWorkspace(signInData.user.id, workspaceName.trim() || "Мебельный цех");
     }
     router.push("/");
     router.refresh();
@@ -100,7 +100,7 @@ export default function LoginPage() {
             className="w-full border border-line rounded-lg px-3 py-2 mb-3"
             value={workspaceName}
             onChange={(e) => setWorkspaceName(e.target.value)}
-            placeholder="Цех «Дубрава»"
+            placeholder="Мебельный цех"
           />
         </>
       )}

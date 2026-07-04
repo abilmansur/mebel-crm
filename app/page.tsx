@@ -16,13 +16,14 @@ export default function Home() {
   const router = useRouter();
   const [tab, setTab] = useState<"inbox" | "board">("inbox");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
-  const [workspaceName, setWorkspaceName] = useState("Мой цех");
+  const [workspaceName, setWorkspaceName] = useState("Мебельный цех");
   const [materials, setMaterials] = useState<Material[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [prefillClient, setPrefillClient] = useState<string | undefined>(undefined);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function Home() {
         return;
       }
 
-      const workspace = await getOrCreateWorkspace(user.id, user.email?.split("@")[0] || "Мой цех");
+      const workspace = await getOrCreateWorkspace(user.id, user.email?.split("@")[0] || "Мебельный цех");
       if (!workspace) {
         setLoading(false);
         return;
@@ -92,6 +93,40 @@ export default function Home() {
     comment: string;
     price: number;
   }) {
+    if (editingOrder) {
+      const updated: Order = {
+        ...editingOrder,
+        client_name: data.client,
+        title: data.title,
+        width_mm: data.width,
+        height_mm: data.height,
+        material_id: data.materialId,
+        extras: data.extras,
+        comment: data.comment,
+        price: data.price,
+      };
+      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+      setShowOrderModal(false);
+      setEditingOrder(null);
+
+      if (isSupabaseConfigured && supabase) {
+        await supabase
+          .from("orders")
+          .update({
+            client_name: updated.client_name,
+            title: updated.title,
+            width_mm: updated.width_mm,
+            height_mm: updated.height_mm,
+            material_id: updated.material_id,
+            extras: updated.extras,
+            comment: updated.comment,
+            price: updated.price,
+          })
+          .eq("id", updated.id);
+      }
+      return;
+    }
+
     const newOrder: Order = {
       id: crypto.randomUUID(),
       client_name: data.client,
@@ -113,6 +148,22 @@ export default function Home() {
     if (isSupabaseConfigured && supabase && workspaceId) {
       await supabase.from("orders").insert({ ...newOrder, workspace_id: workspaceId });
     }
+  }
+
+  async function handleDeleteOrder() {
+    if (!editingOrder) return;
+    const orderId = editingOrder.id;
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+    setShowOrderModal(false);
+    setEditingOrder(null);
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from("orders").delete().eq("id", orderId);
+    }
+  }
+
+  function handleOrderClick(order: Order) {
+    setEditingOrder(order);
+    setShowOrderModal(true);
   }
 
   async function handleStatusChange(orderId: string, status: Stage) {
@@ -172,6 +223,7 @@ export default function Home() {
             className="bg-ink text-white rounded-lg px-4 py-2 text-sm font-medium"
             onClick={() => {
               setPrefillClient(undefined);
+              setEditingOrder(null);
               setShowOrderModal(true);
             }}
           >
@@ -208,15 +260,20 @@ export default function Home() {
       {tab === "inbox" ? (
         <Inbox messages={inbox} onConvert={handleConvertMessage} />
       ) : (
-        <Board orders={orders} onStatusChange={handleStatusChange} />
+        <Board orders={orders} onStatusChange={handleStatusChange} onOrderClick={handleOrderClick} />
       )}
 
       {showOrderModal && (
         <OrderModal
           materials={materials}
           defaultClient={prefillClient}
-          onClose={() => setShowOrderModal(false)}
+          initialOrder={editingOrder || undefined}
+          onClose={() => {
+            setShowOrderModal(false);
+            setEditingOrder(null);
+          }}
           onSave={handleSaveOrder}
+          onDelete={editingOrder ? handleDeleteOrder : undefined}
         />
       )}
 

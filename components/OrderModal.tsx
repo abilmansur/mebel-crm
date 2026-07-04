@@ -1,18 +1,21 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Material, Extra } from "@/lib/types";
+import { Material, Extra, Order } from "@/lib/types";
 import { calcOrderTotal } from "@/lib/calculator";
 import { formatMoney } from "@/lib/format";
 
 export default function OrderModal({
   materials,
   defaultClient,
+  initialOrder,
   onClose,
   onSave,
+  onDelete,
 }: {
   materials: Material[];
   defaultClient?: string;
+  initialOrder?: Order;
   onClose: () => void;
   onSave: (data: {
     client: string;
@@ -24,14 +27,17 @@ export default function OrderModal({
     comment: string;
     price: number;
   }) => void;
+  onDelete?: () => void;
 }) {
-  const [client, setClient] = useState(defaultClient || "");
-  const [title, setTitle] = useState("");
-  const [width, setWidth] = useState(2000);
-  const [height, setHeight] = useState(2400);
-  const [materialId, setMaterialId] = useState(materials[0]?.id || "");
-  const [extras, setExtras] = useState<Extra[]>([]);
-  const [comment, setComment] = useState("");
+  const isEditing = Boolean(initialOrder);
+
+  const [client, setClient] = useState(initialOrder?.client_name || defaultClient || "");
+  const [title, setTitle] = useState(initialOrder?.title || "");
+  const [width, setWidth] = useState(initialOrder?.width_mm || 2000);
+  const [height, setHeight] = useState(initialOrder?.height_mm || 2400);
+  const [materialId, setMaterialId] = useState(initialOrder?.material_id || materials[0]?.id || "");
+  const [extras, setExtras] = useState<Extra[]>(initialOrder?.extras || []);
+  const [comment, setComment] = useState(initialOrder?.comment || "");
 
   const price = useMemo(() => {
     const material = materials.find((m) => m.id === materialId);
@@ -56,7 +62,7 @@ export default function OrderModal({
     <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 p-6 overflow-y-auto">
       <div className="bg-white rounded-xl p-5 w-full max-w-sm my-8">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-base font-medium">Новый заказ</span>
+          <span className="text-base font-medium">{isEditing ? "Заказ" : "Новый заказ"}</span>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-line/40" aria-label="Закрыть">
             ×
           </button>
@@ -165,23 +171,33 @@ export default function OrderModal({
           <span className="font-mono font-medium text-oak">{formatMoney(price)}</span>
         </div>
 
-        <button
-          className="w-full bg-ink text-white rounded-lg py-2 font-medium"
-          onClick={() =>
-            onSave({
-              client: client.trim() || "Без имени",
-              title: title.trim() || "Заказ",
-              width,
-              height,
-              materialId,
-              extras: extras.filter((e) => e.name.trim()),
-              comment: comment.trim(),
-              price,
-            })
-          }
-        >
-          Создать заказ
-        </button>
+        <div className="flex gap-2">
+          {isEditing && onDelete && (
+            <button
+              className="border border-rust/30 text-rust rounded-lg px-4 py-2 font-medium"
+              onClick={onDelete}
+            >
+              Удалить
+            </button>
+          )}
+          <button
+            className="flex-1 bg-ink text-white rounded-lg py-2 font-medium"
+            onClick={() =>
+              onSave({
+                client: client.trim() || "Без имени",
+                title: title.trim() || "Заказ",
+                width,
+                height,
+                materialId,
+                extras: extras.filter((e) => e.name.trim()),
+                comment: comment.trim(),
+                price,
+              })
+            }
+          >
+            {isEditing ? "Сохранить изменения" : "Создать заказ"}
+          </button>
+        </div>
       </div>
     </div>
   );
