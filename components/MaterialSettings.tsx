@@ -7,15 +7,18 @@ import { useLanguage } from "@/lib/LanguageContext";
 export default function MaterialSettings({
   materials,
   onClose,
-  onChange,
+  onUpdate,
   onAdd,
+  onDelete,
 }: {
   materials: Material[];
   onClose: () => void;
-  onChange: (id: string, pricePerSqm: number) => void;
+  onUpdate: (id: string, data: Partial<Omit<Material, "id">>) => void;
   onAdd: (data: { name: string; price_per_sqm: number; edge_per_m: number; markup_percent: number }) => void;
+  onDelete: (id: string) => void;
 }) {
   const { t } = useLanguage();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [name, setName] = useState("");
   const [pricePerSqm, setPricePerSqm] = useState(0);
@@ -42,20 +45,71 @@ export default function MaterialSettings({
           </button>
         </div>
 
-        {materials.map((m) => (
-          <div key={m.id} className="flex items-center gap-3 py-2 border-t border-line">
-            <span className="flex-1 text-sm">{m.name}</span>
-            <input
-              type="number"
-              className="w-24 border border-line rounded-lg px-2 py-1 text-sm"
-              value={m.price_per_sqm}
-              onChange={(e) => onChange(m.id, Number(e.target.value))}
-            />
-            <span className="text-xs text-ink/40">/м²</span>
-          </div>
-        ))}
+        <div className="space-y-2 mb-3">
+          {materials.map((m) => {
+            const isExpanded = expandedId === m.id;
+            return (
+              <div key={m.id} className="border border-line rounded-lg p-2.5">
+                <div className="flex items-center gap-2">
+                  <input
+                    className="flex-1 min-w-0 border border-line rounded-lg px-2 py-1.5 text-sm"
+                    value={m.name}
+                    onChange={(e) => onUpdate(m.id, { name: e.target.value })}
+                  />
+                  <button
+                    onClick={() => setExpandedId(isExpanded ? null : m.id)}
+                    className="w-7 h-7 shrink-0 rounded-lg border border-line text-xs hover:bg-paper"
+                    aria-label="..."
+                  >
+                    ⋯
+                  </button>
+                  <button
+                    onClick={() => onDelete(m.id)}
+                    className="w-7 h-7 shrink-0 rounded-lg hover:bg-rust/10 text-rust"
+                    aria-label="×"
+                  >
+                    ×
+                  </button>
+                </div>
 
-        <p className="text-xs text-ink/40 mt-3 mb-3">{t("materials.note")}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="number"
+                    className="w-24 border border-line rounded-lg px-2 py-1 text-sm"
+                    value={m.price_per_sqm}
+                    onChange={(e) => onUpdate(m.id, { price_per_sqm: Number(e.target.value) })}
+                  />
+                  <span className="text-xs text-ink/40">{t("materials.pricePerSqm")}</span>
+                </div>
+
+                {isExpanded && (
+                  <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-line">
+                    <div>
+                      <label className="text-[11px] text-ink/50">{t("materials.edgePerM")}</label>
+                      <input
+                        type="number"
+                        className="w-full border border-line rounded-lg px-2 py-1.5 text-sm"
+                        value={m.edge_per_m}
+                        onChange={(e) => onUpdate(m.id, { edge_per_m: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-ink/50">{t("materials.markup")}</label>
+                      <input
+                        type="number"
+                        className="w-full border border-line rounded-lg px-2 py-1.5 text-sm"
+                        value={m.markup_percent}
+                        onChange={(e) => onUpdate(m.id, { markup_percent: Number(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="text-xs text-ink/40 mb-3">{t("materials.note")}</p>
 
         {showAddForm ? (
           <div className="border border-line rounded-lg p-3 space-y-2">
@@ -101,10 +155,7 @@ export default function MaterialSettings({
               >
                 {t("materials.add")}
               </button>
-              <button
-                className="px-3 border border-line rounded-lg text-sm"
-                onClick={() => setShowAddForm(false)}
-              >
+              <button className="px-3 border border-line rounded-lg text-sm" onClick={() => setShowAddForm(false)}>
                 ×
               </button>
             </div>

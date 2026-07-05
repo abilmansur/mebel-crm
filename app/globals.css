@@ -30,3 +30,24 @@ body {
   background: rgb(var(--color-paper));
   color: rgb(var(--color-ink));
 }
+
+/* Единый стиль полей ввода — чтобы в тёмной теме они не оставались белыми (браузерный дефолт) */
+input,
+select,
+textarea {
+  background-color: rgb(var(--color-surface));
+  color: rgb(var(--color-ink));
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgb(var(--color-ink) / 0.4);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: var(--date-icon-filter, none);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}

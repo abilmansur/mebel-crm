@@ -9,7 +9,7 @@ export default function LanguageSwitcher() {
   const { lang, setLang } = useLanguage();
 
   return (
-    <div className="flex border border-line rounded-lg overflow-hidden text-xs">
+    <div className="flex border border-line rounded-lg overflow-hidden text-xs w-fit">
       {LANGS.map((l) => (
         <button
           key={l}

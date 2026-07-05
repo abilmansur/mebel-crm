@@ -27,6 +27,7 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [prefillClient, setPrefillClient] = useState<string | undefined>(undefined);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [newOrderStage, setNewOrderStage] = useState<Stage>("new");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -159,11 +160,11 @@ export default function Home() {
       extras: data.extras,
       comment: data.comment,
       price: data.price,
-      status: "new",
+      status: newOrderStage,
       overdue: false,
       measurement_date: data.measurementDate,
       delivery_date: data.deliveryDate,
-      outcome: null,
+      outcome: newOrderStage === "done" ? "success" : null,
     };
 
     setOrders((prev) => [...prev, newOrder]);
@@ -209,6 +210,13 @@ export default function Home() {
     setShowOrderModal(true);
   }
 
+  function handleAddAtStage(stage: Stage) {
+    setPrefillClient(undefined);
+    setEditingOrder(null);
+    setNewOrderStage(stage);
+    setShowOrderModal(true);
+  }
+
   async function handleStatusChange(orderId: string, status: Stage) {
     setOrders((prev) =>
       prev.map((o) => {
@@ -224,10 +232,8 @@ export default function Home() {
     }
   }
 
-  async function handleMaterialPriceChange(materialId: string, pricePerSqm: number) {
-    const updatedMaterials = materials.map((m) =>
-      m.id === materialId ? { ...m, price_per_sqm: pricePerSqm } : m
-    );
+  async function handleUpdateMaterial(materialId: string, data: Partial<Omit<Material, "id">>) {
+    const updatedMaterials = materials.map((m) => (m.id === materialId ? { ...m, ...data } : m));
     setMaterials(updatedMaterials);
     setOrders((prev) =>
       prev.map((o) => {
@@ -236,7 +242,14 @@ export default function Home() {
       })
     );
     if (isSupabaseConfigured && supabase) {
-      await supabase.from("materials").update({ price_per_sqm: pricePerSqm }).eq("id", materialId);
+      await supabase.from("materials").update(data).eq("id", materialId);
+    }
+  }
+
+  async function handleDeleteMaterial(materialId: string) {
+    setMaterials((prev) => prev.filter((m) => m.id !== materialId));
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from("materials").delete().eq("id", materialId);
     }
   }
 
@@ -261,6 +274,8 @@ export default function Home() {
   async function handleConvertMessage(msg: InboxMessage) {
     setInbox((prev) => prev.filter((m) => m.id !== msg.id));
     setPrefillClient(msg.client_name);
+    setEditingOrder(null);
+    setNewOrderStage("new");
     setShowOrderModal(true);
     if (isSupabaseConfigured && supabase) {
       await supabase.from("inbox_messages").delete().eq("id", msg.id);
@@ -294,6 +309,7 @@ export default function Home() {
             onClick={() => {
               setPrefillClient(undefined);
               setEditingOrder(null);
+              setNewOrderStage("new");
               setShowOrderModal(true);
             }}
           >
@@ -345,7 +361,12 @@ export default function Home() {
 
       {tab === "inbox" && <Inbox messages={inbox} onConvert={handleConvertMessage} />}
       {tab === "board" && (
-        <Board orders={orders} onStatusChange={handleStatusChange} onOrderClick={handleOrderClick} />
+        <Board
+          orders={orders}
+          onStatusChange={handleStatusChange}
+          onOrderClick={handleOrderClick}
+          onAddAtStage={handleAddAtStage}
+        />
       )}
       {tab === "analytics" && <Analytics orders={orders} />}
 
@@ -354,6 +375,7 @@ export default function Home() {
           materials={materials}
           defaultClient={prefillClient}
           initialOrder={editingOrder || undefined}
+          presetStage={newOrderStage}
           onClose={() => {
             setShowOrderModal(false);
             setEditingOrder(null);
@@ -368,8 +390,9 @@ export default function Home() {
         <MaterialSettings
           materials={materials}
           onClose={() => setShowSettings(false)}
-          onChange={handleMaterialPriceChange}
+          onUpdate={handleUpdateMaterial}
           onAdd={handleAddMaterial}
+          onDelete={handleDeleteMaterial}
         />
       )}
     </div>

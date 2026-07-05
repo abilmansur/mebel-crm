@@ -18,6 +18,7 @@ export default function OrderModal({
   materials,
   defaultClient,
   initialOrder,
+  presetStage,
   onClose,
   onSave,
   onDelete,
@@ -26,6 +27,7 @@ export default function OrderModal({
   materials: Material[];
   defaultClient?: string;
   initialOrder?: Order;
+  presetStage?: Stage;
   onClose: () => void;
   onSave: (data: {
     client: string;
@@ -46,7 +48,7 @@ export default function OrderModal({
 }) {
   const { t } = useLanguage();
   const isEditing = Boolean(initialOrder);
-  const currentStatus: Stage = initialOrder?.status || "new";
+  const currentStatus: Stage = initialOrder?.status || presetStage || "new";
 
   const [client, setClient] = useState(initialOrder?.client_name || defaultClient || "");
   const [phone, setPhone] = useState(initialOrder?.phone || "");
