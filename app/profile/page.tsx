@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useLanguage } from "@/lib/LanguageContext";
+import { useTheme } from "@/lib/ThemeContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function ProfilePage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { theme, setTheme } = useTheme();
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -106,10 +108,34 @@ export default function ProfilePage() {
             <p className="text-xs text-ink/50">{t("profile.subtitle")}</p>
           </div>
         </div>
-        <LanguageSwitcher />
       </div>
 
-      <div className="bg-white border border-line rounded-xl p-5 mb-4">
+      <div className="bg-surface border border-line rounded-xl p-5 mb-4">
+        <div className="text-sm font-medium mb-3">{t("profile.appearance")}</div>
+
+        <label className="text-sm text-ink/60 block mb-1.5">{t("profile.language")}</label>
+        <div className="mb-4">
+          <LanguageSwitcher />
+        </div>
+
+        <label className="text-sm text-ink/60 block mb-1.5">{t("profile.theme")}</label>
+        <div className="flex border border-line rounded-lg overflow-hidden text-sm w-fit">
+          <button
+            onClick={() => setTheme("light")}
+            className={`px-3 py-1.5 ${theme === "light" ? "bg-accent text-accent-ink" : "text-ink/50 hover:bg-paper"}`}
+          >
+            ☀ {t("profile.light")}
+          </button>
+          <button
+            onClick={() => setTheme("dark")}
+            className={`px-3 py-1.5 ${theme === "dark" ? "bg-accent text-accent-ink" : "text-ink/50 hover:bg-paper"}`}
+          >
+            ☾ {t("profile.dark")}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-surface border border-line rounded-xl p-5 mb-4">
         <div className="flex items-center gap-4 mb-5">
           <div className="w-16 h-16 rounded-full bg-paper flex items-center justify-center text-2xl font-medium text-ink/60 shrink-0">
             {initial}
@@ -141,7 +167,7 @@ export default function ProfilePage() {
         {profileMsg && <p className="text-sm text-ink/60 mb-3">{profileMsg}</p>}
 
         <button
-          className="bg-ink text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+          className="bg-accent text-accent-ink rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
           onClick={handleSaveProfile}
           disabled={savingProfile}
         >
@@ -149,7 +175,7 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      <div className="bg-white border border-line rounded-xl p-5">
+      <div className="bg-surface border border-line rounded-xl p-5">
         <div className="text-sm font-medium mb-3">{t("profile.changePassword")}</div>
 
         <label className="text-sm text-ink/60">{t("profile.newPassword")}</label>

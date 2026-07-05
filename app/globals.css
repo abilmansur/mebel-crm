@@ -2,7 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-paper: 246 241 231; /* фон страницы, светлая тема */
+  --color-surface: 255 255 255; /* карточки, модалки */
+  --color-ink: 36 32 26; /* основной текст */
+  --color-oak: 166 118 61; /* акцент — дуб */
+  --color-pine: 63 87 68; /* акцент — успех */
+  --color-rust: 166 61 47; /* акцент — ошибка/просрочка */
+  --color-line: 221 211 194; /* границы */
+  --color-accent: 36 32 26; /* фон основных кнопок — не зависит от темы */
+  --color-accent-ink: 255 255 255; /* текст на основных кнопках */
+}
+
+.dark {
+  --color-paper: 26 24 20;
+  --color-surface: 40 37 32;
+  --color-ink: 235 229 218;
+  --color-oak: 201 152 96;
+  --color-pine: 130 173 141;
+  --color-rust: 224 128 113;
+  --color-line: 63 57 48;
+  --color-accent: 201 152 96; /* в тёмной теме кнопка — акцентный оттенок дуба на тёмном фоне */
+  --color-accent-ink: 26 24 20;
+}
+
 body {
-  background: #F6F1E7;
-  color: #241F1A;
+  background: rgb(var(--color-paper));
+  color: rgb(var(--color-ink));
 }

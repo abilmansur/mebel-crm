@@ -1,16 +1,20 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        paper: "#F6F1E7",
-        ink: "#241F1A",
-        oak: "#A6763D",
-        pine: "#3F5744",
-        rust: "#A63D2F",
-        line: "#DDD3C2",
+        paper: "rgb(var(--color-paper) / <alpha-value>)",
+        surface: "rgb(var(--color-surface) / <alpha-value>)",
+        ink: "rgb(var(--color-ink) / <alpha-value>)",
+        oak: "rgb(var(--color-oak) / <alpha-value>)",
+        pine: "rgb(var(--color-pine) / <alpha-value>)",
+        rust: "rgb(var(--color-rust) / <alpha-value>)",
+        line: "rgb(var(--color-line) / <alpha-value>)",
+        accent: "rgb(var(--color-accent) / <alpha-value>)",
+        "accent-ink": "rgb(var(--color-accent-ink) / <alpha-value>)",
       },
       fontFamily: {
         mono: ["IBM Plex Mono", "monospace"],

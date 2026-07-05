@@ -106,6 +106,18 @@ const dict: Record<string, Record<Lang, string>> = {
   "profile.saved": { ru: "Сохранено", kk: "Сақталды", en: "Saved" },
   "profile.passwordChanged": { ru: "Пароль изменён", kk: "Құпия сөз өзгертілді", en: "Password changed" },
   "profile.passwordsDontMatch": { ru: "Пароли не совпадают", kk: "Құпия сөздер сәйкес келмейді", en: "Passwords don't match" },
+  "profile.appearance": { ru: "Оформление", kk: "Көрініс", en: "Appearance" },
+  "profile.theme": { ru: "Тема оформления", kk: "Көрініс тақырыбы", en: "Theme" },
+  "profile.language": { ru: "Язык интерфейса", kk: "Интерфейс тілі", en: "Interface language" },
+  "profile.light": { ru: "Дневной", kk: "Күндізгі", en: "Light" },
+  "profile.dark": { ru: "Ночной", kk: "Түнгі", en: "Dark" },
+
+  "materials.addNew": { ru: "Добавить материал", kk: "Материал қосу", en: "Add material" },
+  "materials.namePlaceholder": { ru: "Название материала", kk: "Материал атауы", en: "Material name" },
+  "materials.pricePerSqm": { ru: "Цена за м²", kk: "м² бағасы", en: "Price per m²" },
+  "materials.edgePerM": { ru: "Кромка за м", kk: "Жиек метрі", en: "Edge per m" },
+  "materials.markup": { ru: "Наценка, %", kk: "Үстеме, %", en: "Markup, %" },
+  "materials.add": { ru: "Добавить", kk: "Қосу", en: "Add" },
 
   "login.signin": { ru: "Вход", kk: "Кіру", en: "Sign in" },
   "login.signup": { ru: "Регистрация", kk: "Тіркелу", en: "Sign up" },

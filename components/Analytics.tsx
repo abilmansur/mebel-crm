@@ -30,32 +30,32 @@ export default function Analytics({ orders }: { orders: Order[] }) {
   return (
     <div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-white border border-line rounded-xl p-4">
+        <div className="bg-surface border border-line rounded-xl p-4">
           <div className="text-xs text-ink/50 mb-1">{t("analytics.totalDeals")}</div>
           <div className="text-2xl font-medium">{data.totalDeals}</div>
           <div className="text-xs text-ink/40 mt-1">
             {data.activeDeals} {t("analytics.active")}
           </div>
         </div>
-        <div className="bg-white border border-line rounded-xl p-4">
+        <div className="bg-surface border border-line rounded-xl p-4">
           <div className="text-xs text-ink/50 mb-1">{t("analytics.totalRevenue")}</div>
           <div className="text-2xl font-mono font-medium text-oak">{formatMoney(data.totalRevenue)}</div>
           <div className="text-xs text-ink/40 mt-1">
             {data.wonCount} / {data.lostCount} {t("analytics.wonLost")}
           </div>
         </div>
-        <div className="bg-white border border-line rounded-xl p-4">
+        <div className="bg-surface border border-line rounded-xl p-4">
           <div className="text-xs text-ink/50 mb-1">{t("analytics.conversion")}</div>
           <div className="text-2xl font-medium">{data.conversion.toFixed(1)}%</div>
         </div>
-        <div className="bg-white border border-line rounded-xl p-4">
+        <div className="bg-surface border border-line rounded-xl p-4">
           <div className="text-xs text-ink/50 mb-1">{t("analytics.avgCheck")}</div>
           <div className="text-2xl font-mono font-medium">{formatMoney(data.avgCheck)}</div>
           <div className="text-xs text-ink/40 mt-1">{t("analytics.perDeal")}</div>
         </div>
       </div>
 
-      <div className="bg-white border border-line rounded-xl p-4">
+      <div className="bg-surface border border-line rounded-xl p-4">
         <div className="text-sm font-medium mb-4">{t("analytics.funnel")}</div>
         <div className="space-y-3">
           {data.stages.map((s) => {

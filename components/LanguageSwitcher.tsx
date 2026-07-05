@@ -14,7 +14,7 @@ export default function LanguageSwitcher() {
         <button
           key={l}
           onClick={() => setLang(l)}
-          className={`px-2 py-1.5 ${lang === l ? "bg-ink text-white" : "text-ink/50 hover:bg-paper"}`}
+          className={`px-2 py-1.5 ${lang === l ? "bg-accent text-accent-ink" : "text-ink/50 hover:bg-paper"}`}
         >
           {LANG_LABELS[l]}
         </button>

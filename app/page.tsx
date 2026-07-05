@@ -12,7 +12,6 @@ import Board from "@/components/Board";
 import Analytics from "@/components/Analytics";
 import OrderModal from "@/components/OrderModal";
 import MaterialSettings from "@/components/MaterialSettings";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLanguage } from "@/lib/LanguageContext";
 
 export default function Home() {
@@ -241,6 +240,24 @@ export default function Home() {
     }
   }
 
+  async function handleAddMaterial(data: {
+    name: string;
+    price_per_sqm: number;
+    edge_per_m: number;
+    markup_percent: number;
+  }) {
+    if (isSupabaseConfigured && supabase && workspaceId) {
+      const { data: created } = await supabase
+        .from("materials")
+        .insert({ ...data, workspace_id: workspaceId })
+        .select()
+        .single();
+      if (created) setMaterials((prev) => [...prev, created as Material]);
+    } else {
+      setMaterials((prev) => [...prev, { id: crypto.randomUUID(), ...data }]);
+    }
+  }
+
   async function handleConvertMessage(msg: InboxMessage) {
     setInbox((prev) => prev.filter((m) => m.id !== msg.id));
     setPrefillClient(msg.client_name);
@@ -260,11 +277,10 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-6">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6">
       <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
         <span className="text-base font-medium">{workspaceName}</span>
         <div className="flex flex-wrap items-center gap-2">
-          <LanguageSwitcher />
           <button
             className="w-9 h-9 border border-line rounded-lg flex items-center justify-center"
             onClick={() => setShowSettings(true)}
@@ -274,7 +290,7 @@ export default function Home() {
             ⚙
           </button>
           <button
-            className="bg-ink text-white rounded-lg px-3 sm:px-4 py-2 text-sm font-medium whitespace-nowrap"
+            className="bg-accent text-accent-ink rounded-lg px-3 sm:px-4 py-2 text-sm font-medium whitespace-nowrap"
             onClick={() => {
               setPrefillClient(undefined);
               setEditingOrder(null);
@@ -353,6 +369,7 @@ export default function Home() {
           materials={materials}
           onClose={() => setShowSettings(false)}
           onChange={handleMaterialPriceChange}
+          onAdd={handleAddMaterial}
         />
       )}
     </div>

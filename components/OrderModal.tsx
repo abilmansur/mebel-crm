@@ -86,7 +86,7 @@ export default function OrderModal({
 
   return (
     <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white rounded-xl p-4 sm:p-5 w-full max-w-sm my-8">
+      <div className="bg-surface rounded-xl p-4 sm:p-5 w-full max-w-sm my-8">
         <div className="flex justify-between items-center mb-4">
           <span className="text-base font-medium">{isEditing ? t("modal.order") : t("modal.newOrder")}</span>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-line/40 shrink-0" aria-label="×">
@@ -272,7 +272,7 @@ export default function OrderModal({
             </button>
           )}
           <button
-            className="flex-1 bg-ink text-white rounded-lg py-2 font-medium"
+            className="flex-1 bg-accent text-accent-ink rounded-lg py-2 font-medium"
             onClick={() =>
               onSave({
                 client: client.trim() || "—",

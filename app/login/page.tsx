@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { getOrCreateWorkspace } from "@/lib/workspace";
 import { useLanguage } from "@/lib/LanguageContext";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -81,7 +80,6 @@ export default function LoginPage() {
     <div className="max-w-sm mx-auto p-4 sm:p-6 mt-12 sm:mt-16">
       <div className="flex justify-between items-start mb-1">
         <h1 className="text-lg font-medium">Мебель CRM</h1>
-        <LanguageSwitcher />
       </div>
       <p className="text-sm text-ink/60 mb-5">
         {mode === "signin" ? t("login.signin") : t("login.signup")}
@@ -135,7 +133,7 @@ export default function LoginPage() {
       {error && <p className="text-sm text-rust mb-3">{error}</p>}
 
       <button
-        className="w-full bg-ink text-white rounded-lg py-2 font-medium disabled:opacity-50"
+        className="w-full bg-accent text-accent-ink rounded-lg py-2 font-medium disabled:opacity-50"
         onClick={handleSubmit}
         disabled={loading || !email || !password}
       >
