@@ -1,4 +1,9 @@
-export type Stage = "new" | "quote" | "approved" | "production" | "done";
+// Воронка заказа: Заявка -> Замеры -> Согласовано -> Производство -> Доставка -> Завершено.
+// "Завершено" — общий финальный столбец: сюда попадают и успешно доставленные,
+// и отменённые (клиент отказался после замера/на согласовании) заказы — их различает поле outcome.
+export type Stage = "new" | "measuring" | "approved" | "production" | "delivery" | "done";
+
+export type Outcome = "success" | "failed" | null;
 
 export interface Material {
   id: string;
@@ -12,11 +17,14 @@ export interface Extra {
   id: string;
   name: string;
   price: number;
+  quantity: number;
 }
 
 export interface Order {
   id: string;
   client_name: string;
+  phone: string;
+  address: string; // адрес для замера и доставки
   title: string;
   width_mm: number;
   height_mm: number;
@@ -26,6 +34,9 @@ export interface Order {
   price: number;
   status: Stage;
   overdue: boolean;
+  measurement_date: string; // ставится на этапе "Заявка"/"Замеры", дальше не редактируется
+  delivery_date: string; // редактируется начиная с этапа "Производство"
+  outcome: Outcome;
   created_at?: string;
 }
 
@@ -42,8 +53,23 @@ export interface InboxMessage {
 
 export const STAGES: { id: Stage; label: string }[] = [
   { id: "new", label: "Заявка" },
-  { id: "quote", label: "Расчёт" },
+  { id: "measuring", label: "Замеры" },
   { id: "approved", label: "Согласовано" },
   { id: "production", label: "Производство" },
-  { id: "done", label: "Готово" },
+  { id: "delivery", label: "Доставка" },
+  { id: "done", label: "Завершено" },
 ];
+
+// На каких этапах разрешено ставить/видеть дату замера и дату доставки
+export function isMeasurementDateRelevant(status: Stage): boolean {
+  return status === "new" || status === "measuring";
+}
+
+export function isDeliveryDateEditable(status: Stage): boolean {
+  return status === "production" || status === "delivery" || status === "done";
+}
+
+// На этих этапах заказ ещё может "сорваться" — клиент отказался
+export function canMarkAsFailed(status: Stage): boolean {
+  return status === "new" || status === "measuring" || status === "approved";
+}

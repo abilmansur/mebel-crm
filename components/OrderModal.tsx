@@ -1,8 +1,16 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Material, Extra, Order } from "@/lib/types";
-import { calcOrderTotal } from "@/lib/calculator";
+import {
+  Material,
+  Extra,
+  Order,
+  Stage,
+  isMeasurementDateRelevant,
+  isDeliveryDateEditable,
+  canMarkAsFailed,
+} from "@/lib/types";
+import { calcOrderTotal, calcExtrasTotal } from "@/lib/calculator";
 import { formatMoney } from "@/lib/format";
 
 export default function OrderModal({
@@ -12,6 +20,7 @@ export default function OrderModal({
   onClose,
   onSave,
   onDelete,
+  onMarkFailed,
 }: {
   materials: Material[];
   defaultClient?: string;
@@ -19,6 +28,8 @@ export default function OrderModal({
   onClose: () => void;
   onSave: (data: {
     client: string;
+    phone: string;
+    address: string;
     title: string;
     width: number;
     height: number;
@@ -26,37 +37,52 @@ export default function OrderModal({
     extras: Extra[];
     comment: string;
     price: number;
+    measurementDate: string;
+    deliveryDate: string;
   }) => void;
   onDelete?: () => void;
+  onMarkFailed?: () => void;
 }) {
   const isEditing = Boolean(initialOrder);
+  const currentStatus: Stage = initialOrder?.status || "new";
 
   const [client, setClient] = useState(initialOrder?.client_name || defaultClient || "");
+  const [phone, setPhone] = useState(initialOrder?.phone || "");
+  const [address, setAddress] = useState(initialOrder?.address || "");
   const [title, setTitle] = useState(initialOrder?.title || "");
   const [width, setWidth] = useState(initialOrder?.width_mm || 2000);
   const [height, setHeight] = useState(initialOrder?.height_mm || 2400);
   const [materialId, setMaterialId] = useState(initialOrder?.material_id || materials[0]?.id || "");
   const [extras, setExtras] = useState<Extra[]>(initialOrder?.extras || []);
   const [comment, setComment] = useState(initialOrder?.comment || "");
+  const [measurementDate, setMeasurementDate] = useState(initialOrder?.measurement_date || "");
+  const [deliveryDate, setDeliveryDate] = useState(initialOrder?.delivery_date || "");
 
   const price = useMemo(() => {
     const material = materials.find((m) => m.id === materialId);
     return material ? calcOrderTotal(width, height, material, extras) : 0;
   }, [width, height, materialId, materials, extras]);
 
+  const extrasTotal = calcExtrasTotal(extras);
+
   function addExtra() {
-    setExtras((prev) => [...prev, { id: crypto.randomUUID(), name: "", price: 0 }]);
+    setExtras((prev) => [...prev, { id: crypto.randomUUID(), name: "", price: 0, quantity: 1 }]);
   }
 
-  function updateExtra(id: string, field: "name" | "price", value: string) {
+  function updateExtra(id: string, field: "name" | "price" | "quantity", value: string) {
     setExtras((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, [field]: field === "price" ? Number(value) : value } : e))
+      prev.map((e) =>
+        e.id === id ? { ...e, [field]: field === "name" ? value : Number(value) } : e
+      )
     );
   }
 
   function removeExtra(id: string) {
     setExtras((prev) => prev.filter((e) => e.id !== id));
   }
+
+  const showMeasurementDate = isMeasurementDateRelevant(currentStatus);
+  const showDeliveryDate = isDeliveryDateEditable(currentStatus);
 
   return (
     <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 p-6 overflow-y-auto">
@@ -76,6 +102,26 @@ export default function OrderModal({
           placeholder="Иванов Александр"
         />
 
+        <div className="flex gap-3 mb-3">
+          <div className="flex-1">
+            <label className="text-sm text-ink/60">Телефон</label>
+            <input
+              className="w-full border border-line rounded-lg px-3 py-2"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+7 700 000 00 00"
+            />
+          </div>
+        </div>
+
+        <label className="text-sm text-ink/60">Адрес (замер / доставка)</label>
+        <input
+          className="w-full border border-line rounded-lg px-3 py-2 mb-3"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="г. Астана, ул. Примерная, 12, кв. 5"
+        />
+
         <label className="text-sm text-ink/60">Изделие</label>
         <input
           className="w-full border border-line rounded-lg px-3 py-2 mb-3"
@@ -83,6 +129,33 @@ export default function OrderModal({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Шкаф-купе"
         />
+
+        {(showMeasurementDate || showDeliveryDate) && (
+          <div className="flex gap-3 mb-3">
+            {showMeasurementDate && (
+              <div className="flex-1">
+                <label className="text-sm text-ink/60">Дата замера</label>
+                <input
+                  type="date"
+                  className="w-full border border-line rounded-lg px-3 py-2"
+                  value={measurementDate}
+                  onChange={(e) => setMeasurementDate(e.target.value)}
+                />
+              </div>
+            )}
+            {showDeliveryDate && (
+              <div className="flex-1">
+                <label className="text-sm text-ink/60">Дата доставки</label>
+                <input
+                  type="date"
+                  className="w-full border border-line rounded-lg px-3 py-2"
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
@@ -128,7 +201,7 @@ export default function OrderModal({
         </div>
 
         {extras.length > 0 && (
-          <div className="mb-3 space-y-2">
+          <div className="mb-1.5 space-y-2">
             {extras.map((extra) => (
               <div key={extra.id} className="flex gap-2 items-center">
                 <input
@@ -139,8 +212,17 @@ export default function OrderModal({
                 />
                 <input
                   type="number"
+                  min={1}
+                  className="w-14 border border-line rounded-lg px-2 py-1.5 text-sm"
+                  placeholder="Кол-во"
+                  value={extra.quantity || 1}
+                  onChange={(e) => updateExtra(extra.id, "quantity", e.target.value)}
+                  title="Количество"
+                />
+                <input
+                  type="number"
                   className="w-24 border border-line rounded-lg px-2.5 py-1.5 text-sm"
-                  placeholder="Цена"
+                  placeholder="Цена/шт"
                   value={extra.price || ""}
                   onChange={(e) => updateExtra(extra.id, "price", e.target.value)}
                 />
@@ -157,6 +239,12 @@ export default function OrderModal({
           </div>
         )}
 
+        {extras.length > 0 && (
+          <div className="text-xs text-ink/50 mb-3 text-right">
+            Фурнитура: {formatMoney(extrasTotal)}
+          </div>
+        )}
+
         <label className="text-sm text-ink/60">Комментарий</label>
         <textarea
           className="w-full border border-line rounded-lg px-3 py-2 mb-4 text-sm"
@@ -167,11 +255,11 @@ export default function OrderModal({
         />
 
         <div className="bg-paper rounded-lg px-3 py-2 mb-4 flex justify-between items-center">
-          <span className="text-sm text-ink/60">Смета</span>
+          <span className="text-sm text-ink/60">Смета итого</span>
           <span className="font-mono font-medium text-oak">{formatMoney(price)}</span>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 mb-2">
           {isEditing && onDelete && (
             <button
               className="border border-rust/30 text-rust rounded-lg px-4 py-2 font-medium"
@@ -185,6 +273,8 @@ export default function OrderModal({
             onClick={() =>
               onSave({
                 client: client.trim() || "Без имени",
+                phone: phone.trim(),
+                address: address.trim(),
                 title: title.trim() || "Заказ",
                 width,
                 height,
@@ -192,12 +282,23 @@ export default function OrderModal({
                 extras: extras.filter((e) => e.name.trim()),
                 comment: comment.trim(),
                 price,
+                measurementDate,
+                deliveryDate,
               })
             }
           >
             {isEditing ? "Сохранить изменения" : "Создать заказ"}
           </button>
         </div>
+
+        {isEditing && onMarkFailed && canMarkAsFailed(currentStatus) && (
+          <button
+            className="w-full text-sm text-rust/80 hover:text-rust py-1"
+            onClick={onMarkFailed}
+          >
+            Клиент отказался — отметить как неуспешный
+          </button>
+        )}
       </div>
     </div>
   );

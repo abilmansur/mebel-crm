@@ -66,15 +66,20 @@ export default function Home() {
         (ords || []).map((o: any) => ({
           id: o.id,
           client_name: o.client_name,
+          phone: o.phone || "",
+          address: o.address || "",
           title: o.title,
           width_mm: o.width_mm,
           height_mm: o.height_mm,
           material_id: o.material_id,
-          extras: o.extras || [],
+          extras: (o.extras || []).map((e: any) => ({ ...e, quantity: e.quantity || 1 })),
           comment: o.comment || "",
           price: o.price,
           status: o.status,
           overdue: o.overdue,
+          measurement_date: o.measurement_date || "",
+          delivery_date: o.delivery_date || "",
+          outcome: o.outcome || null,
         }))
       );
       setInbox(msgs || []);
@@ -85,6 +90,8 @@ export default function Home() {
 
   async function handleSaveOrder(data: {
     client: string;
+    phone: string;
+    address: string;
     title: string;
     width: number;
     height: number;
@@ -92,11 +99,15 @@ export default function Home() {
     extras: Extra[];
     comment: string;
     price: number;
+    measurementDate: string;
+    deliveryDate: string;
   }) {
     if (editingOrder) {
       const updated: Order = {
         ...editingOrder,
         client_name: data.client,
+        phone: data.phone,
+        address: data.address,
         title: data.title,
         width_mm: data.width,
         height_mm: data.height,
@@ -104,6 +115,8 @@ export default function Home() {
         extras: data.extras,
         comment: data.comment,
         price: data.price,
+        measurement_date: data.measurementDate,
+        delivery_date: data.deliveryDate,
       };
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
       setShowOrderModal(false);
@@ -114,6 +127,8 @@ export default function Home() {
           .from("orders")
           .update({
             client_name: updated.client_name,
+            phone: updated.phone,
+            address: updated.address,
             title: updated.title,
             width_mm: updated.width_mm,
             height_mm: updated.height_mm,
@@ -121,6 +136,8 @@ export default function Home() {
             extras: updated.extras,
             comment: updated.comment,
             price: updated.price,
+            measurement_date: updated.measurement_date || null,
+            delivery_date: updated.delivery_date || null,
           })
           .eq("id", updated.id);
       }
@@ -130,6 +147,8 @@ export default function Home() {
     const newOrder: Order = {
       id: crypto.randomUUID(),
       client_name: data.client,
+      phone: data.phone,
+      address: data.address,
       title: data.title,
       width_mm: data.width,
       height_mm: data.height,
@@ -139,6 +158,9 @@ export default function Home() {
       price: data.price,
       status: "new",
       overdue: false,
+      measurement_date: data.measurementDate,
+      delivery_date: data.deliveryDate,
+      outcome: null,
     };
 
     setOrders((prev) => [...prev, newOrder]);
@@ -146,7 +168,25 @@ export default function Home() {
     setTab("board");
 
     if (isSupabaseConfigured && supabase && workspaceId) {
-      await supabase.from("orders").insert({ ...newOrder, workspace_id: workspaceId });
+      await supabase.from("orders").insert({
+        ...newOrder,
+        measurement_date: newOrder.measurement_date || null,
+        delivery_date: newOrder.delivery_date || null,
+        workspace_id: workspaceId,
+      });
+    }
+  }
+
+  async function handleMarkFailed() {
+    if (!editingOrder) return;
+    const orderId = editingOrder.id;
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: "done" as Stage, outcome: "failed" as const } : o))
+    );
+    setShowOrderModal(false);
+    setEditingOrder(null);
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from("orders").update({ status: "done", outcome: "failed" }).eq("id", orderId);
     }
   }
 
@@ -167,9 +207,17 @@ export default function Home() {
   }
 
   async function handleStatusChange(orderId: string, status: Stage) {
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
+    setOrders((prev) =>
+      prev.map((o) => {
+        if (o.id !== orderId) return o;
+        const outcome = status === "done" ? o.outcome || "success" : o.outcome;
+        return { ...o, status, outcome };
+      })
+    );
     if (isSupabaseConfigured && supabase) {
-      await supabase.from("orders").update({ status }).eq("id", orderId);
+      const order = orders.find((o) => o.id === orderId);
+      const outcome = status === "done" ? order?.outcome || "success" : order?.outcome ?? null;
+      await supabase.from("orders").update({ status, outcome }).eq("id", orderId);
     }
   }
 
@@ -274,6 +322,7 @@ export default function Home() {
           }}
           onSave={handleSaveOrder}
           onDelete={editingOrder ? handleDeleteOrder : undefined}
+          onMarkFailed={editingOrder ? handleMarkFailed : undefined}
         />
       )}
 

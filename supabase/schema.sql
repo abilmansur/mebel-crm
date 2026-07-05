@@ -32,15 +32,20 @@ create table orders (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid references workspaces(id) not null,
   client_name text not null,
+  phone text default '',
+  address text default '',                      -- адрес для замера и доставки
   title text,
   width_mm numeric not null,
   height_mm numeric not null,
   material_id uuid references materials(id),
-  extras jsonb not null default '[]'::jsonb,   -- доп. фурнитура: [{"name": "Петли", "price": 4500}, ...]
+  extras jsonb not null default '[]'::jsonb,   -- доп. фурнитура: [{"name": "Петли", "price": 4500, "quantity": 12}, ...]
   comment text default '',                      -- свободный комментарий по заказу
   price numeric not null,
-  status text not null default 'new',
+  status text not null default 'new',           -- new -> measuring -> approved -> production -> delivery -> done
   overdue boolean default false,
+  measurement_date date,                        -- ставится на этапе "Заявка"/"Замеры"
+  delivery_date date,                           -- редактируется начиная с этапа "Производство"
+  outcome text check (outcome in ('success', 'failed')),  -- заполняется только когда status = 'done'
   due_date date,
   created_at timestamptz default now(),
   updated_at timestamptz default now()

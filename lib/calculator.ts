@@ -19,8 +19,9 @@ export function calcPrice(widthMm: number, heightMm: number, material: Material)
 
 // Фурнитура (петли, ручки, направляющие и т.д.) считается по факту, без наценки —
 // это позиции, которые цех обычно просто перевыставляет клиенту по своей закупочной цене.
+// Сумма по позиции = цена за штуку * количество.
 export function calcExtrasTotal(extras: Extra[]): number {
-  return extras.reduce((sum, e) => sum + (e.price || 0), 0);
+  return extras.reduce((sum, e) => sum + (e.price || 0) * (e.quantity || 1), 0);
 }
 
 // Итоговая смета: материал с наценкой + фурнитура по факту
