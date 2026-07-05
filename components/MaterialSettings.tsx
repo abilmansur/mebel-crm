@@ -1,6 +1,7 @@
 "use client";
 
 import { Material } from "@/lib/types";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function MaterialSettings({
   materials,
@@ -11,12 +12,14 @@ export default function MaterialSettings({
   onClose: () => void;
   onChange: (id: string, pricePerSqm: number) => void;
 }) {
+  const { t } = useLanguage();
+
   return (
     <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 p-6">
       <div className="bg-white rounded-xl p-5 w-full max-w-sm">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-base font-medium">Материалы и цены</span>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-line/40" aria-label="Закрыть">
+          <span className="text-base font-medium">{t("materials.title")}</span>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-line/40" aria-label="×">
             ×
           </button>
         </div>
@@ -32,9 +35,7 @@ export default function MaterialSettings({
             <span className="text-xs text-ink/40">/м²</span>
           </div>
         ))}
-        <p className="text-xs text-ink/40 mt-3">
-          Цена за м² материала, наценка цеха уже учтена в смете.
-        </p>
+        <p className="text-xs text-ink/40 mt-3">{t("materials.note")}</p>
       </div>
     </div>
   );

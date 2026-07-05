@@ -1,6 +1,7 @@
 "use client";
 
 import { InboxMessage, Channel } from "@/lib/types";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const channelLabel: Record<Channel, string> = {
   whatsapp: "WhatsApp",
@@ -16,8 +17,10 @@ export default function Inbox({
   messages: InboxMessage[];
   onConvert: (msg: InboxMessage) => void;
 }) {
+  const { t } = useLanguage();
+
   if (messages.length === 0) {
-    return <p className="text-sm text-ink/50 py-6">Новых обращений нет — все распределены по доске.</p>;
+    return <p className="text-sm text-ink/50 py-6">{t("inbox.empty")}</p>;
   }
 
   return (
@@ -36,7 +39,7 @@ export default function Inbox({
             onClick={() => onConvert(m)}
             className="text-sm border border-line rounded-lg px-3 py-1.5 whitespace-nowrap hover:bg-paper"
           >
-            В заказ
+            {t("inbox.toOrder")}
           </button>
         </div>
       ))}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Order, Stage, STAGES, isMeasurementDateRelevant, isDeliveryDateEditable } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
+import { useLanguage } from "@/lib/LanguageContext";
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return "";
@@ -21,6 +22,7 @@ export default function Board({
   onOrderClick: (order: Order) => void;
 }) {
   const [dragOverStage, setDragOverStage] = useState<Stage | null>(null);
+  const { t } = useLanguage();
 
   return (
     <div className="flex gap-4 overflow-x-auto pb-2">
@@ -29,7 +31,7 @@ export default function Board({
         return (
           <div key={stage.id} className="min-w-[170px] flex-none">
             <div className="flex justify-between text-sm font-medium text-ink/60 px-1 pb-2">
-              <span>{stage.label}</span>
+              <span>{t(`stage.${stage.id}`)}</span>
               <span>{list.length}</span>
             </div>
             <div
@@ -74,11 +76,11 @@ export default function Board({
                       <div className="mt-1.5">
                         {order.outcome === "failed" ? (
                           <span className="text-[11px] bg-rust/10 text-rust rounded px-1.5 py-0.5">
-                            Не успешно
+                            {t("stage.failed")}
                           </span>
                         ) : (
                           <span className="text-[11px] bg-pine/10 text-pine rounded px-1.5 py-0.5">
-                            Успешно
+                            {t("stage.success")}
                           </span>
                         )}
                       </div>
@@ -102,7 +104,7 @@ export default function Board({
                       </span>
                       {order.overdue && stage.id !== "done" && (
                         <span className="text-[11px] bg-rust/10 text-rust rounded px-1.5 py-0.5">
-                          просрочен
+                          {t("stage.overdue")}
                         </span>
                       )}
                     </div>

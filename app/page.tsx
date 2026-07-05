@@ -9,12 +9,16 @@ import { calcOrderTotal } from "@/lib/calculator";
 import { demoMaterials, buildDemoOrders, demoInbox } from "@/lib/demoData";
 import Inbox from "@/components/Inbox";
 import Board from "@/components/Board";
+import Analytics from "@/components/Analytics";
 import OrderModal from "@/components/OrderModal";
 import MaterialSettings from "@/components/MaterialSettings";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function Home() {
   const router = useRouter();
-  const [tab, setTab] = useState<"inbox" | "board">("inbox");
+  const { t } = useLanguage();
+  const [tab, setTab] = useState<"inbox" | "board" | "analytics">("inbox");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState("Мебельный цех");
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -252,64 +256,82 @@ export default function Home() {
   }
 
   if (loading) {
-    return <div className="p-8 text-sm text-ink/50">Загрузка…</div>;
+    return <div className="p-8 text-sm text-ink/50">…</div>;
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="max-w-3xl mx-auto p-4 sm:p-6">
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
         <span className="text-base font-medium">{workspaceName}</span>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <LanguageSwitcher />
           <button
             className="w-9 h-9 border border-line rounded-lg flex items-center justify-center"
             onClick={() => setShowSettings(true)}
-            aria-label="Настройки материалов"
+            aria-label={t("nav.settings")}
+            title={t("nav.settings")}
           >
             ⚙
           </button>
           <button
-            className="bg-ink text-white rounded-lg px-4 py-2 text-sm font-medium"
+            className="bg-ink text-white rounded-lg px-3 sm:px-4 py-2 text-sm font-medium whitespace-nowrap"
             onClick={() => {
               setPrefillClient(undefined);
               setEditingOrder(null);
               setShowOrderModal(true);
             }}
           >
-            + Новый заказ
+            + {t("nav.newOrder")}
           </button>
           {isSupabaseConfigured && (
-            <button
-              className="w-9 h-9 border border-line rounded-lg flex items-center justify-center text-sm"
-              onClick={handleLogout}
-              aria-label="Выйти"
-              title="Выйти"
-            >
-              ⏻
-            </button>
+            <>
+              <button
+                onClick={() => router.push("/profile")}
+                className="w-9 h-9 rounded-full bg-paper border border-line flex items-center justify-center text-sm font-medium"
+                aria-label={t("nav.profile")}
+                title={t("nav.profile")}
+              >
+                {workspaceName.charAt(0).toUpperCase()}
+              </button>
+              <button
+                className="w-9 h-9 border border-line rounded-lg flex items-center justify-center text-sm"
+                onClick={handleLogout}
+                aria-label={t("nav.logout")}
+                title={t("nav.logout")}
+              >
+                ⏻
+              </button>
+            </>
           )}
         </div>
       </div>
 
-      <div className="flex gap-1 mb-4">
+      <div className="flex gap-1 mb-4 overflow-x-auto">
         <button
-          className={`px-3.5 py-2 rounded-lg text-sm ${tab === "inbox" ? "bg-paper font-medium" : "text-ink/50"}`}
+          className={`px-3.5 py-2 rounded-lg text-sm whitespace-nowrap ${tab === "inbox" ? "bg-paper font-medium" : "text-ink/50"}`}
           onClick={() => setTab("inbox")}
         >
-          Входящие {inbox.length > 0 && `(${inbox.length})`}
+          {t("nav.inbox")} {inbox.length > 0 && `(${inbox.length})`}
         </button>
         <button
-          className={`px-3.5 py-2 rounded-lg text-sm ${tab === "board" ? "bg-paper font-medium" : "text-ink/50"}`}
+          className={`px-3.5 py-2 rounded-lg text-sm whitespace-nowrap ${tab === "board" ? "bg-paper font-medium" : "text-ink/50"}`}
           onClick={() => setTab("board")}
         >
-          Доска заказов
+          {t("nav.board")}
+        </button>
+        <button
+          className={`px-3.5 py-2 rounded-lg text-sm whitespace-nowrap ${tab === "analytics" ? "bg-paper font-medium" : "text-ink/50"}`}
+          onClick={() => setTab("analytics")}
+        >
+          {t("nav.analytics")}
         </button>
       </div>
 
-      {tab === "inbox" ? (
-        <Inbox messages={inbox} onConvert={handleConvertMessage} />
-      ) : (
+      {tab === "inbox" && <Inbox messages={inbox} onConvert={handleConvertMessage} />}
+      {tab === "board" && (
         <Board orders={orders} onStatusChange={handleStatusChange} onOrderClick={handleOrderClick} />
       )}
+      {tab === "analytics" && <Analytics orders={orders} />}
 
       {showOrderModal && (
         <OrderModal

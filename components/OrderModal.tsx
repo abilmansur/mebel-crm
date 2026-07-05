@@ -12,6 +12,7 @@ import {
 } from "@/lib/types";
 import { calcOrderTotal, calcExtrasTotal } from "@/lib/calculator";
 import { formatMoney } from "@/lib/format";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function OrderModal({
   materials,
@@ -43,6 +44,7 @@ export default function OrderModal({
   onDelete?: () => void;
   onMarkFailed?: () => void;
 }) {
+  const { t } = useLanguage();
   const isEditing = Boolean(initialOrder);
   const currentStatus: Stage = initialOrder?.status || "new";
 
@@ -71,9 +73,7 @@ export default function OrderModal({
 
   function updateExtra(id: string, field: "name" | "price" | "quantity", value: string) {
     setExtras((prev) =>
-      prev.map((e) =>
-        e.id === id ? { ...e, [field]: field === "name" ? value : Number(value) } : e
-      )
+      prev.map((e) => (e.id === id ? { ...e, [field]: field === "name" ? value : Number(value) } : e))
     );
   }
 
@@ -85,16 +85,16 @@ export default function OrderModal({
   const showDeliveryDate = isDeliveryDateEditable(currentStatus);
 
   return (
-    <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 p-6 overflow-y-auto">
-      <div className="bg-white rounded-xl p-5 w-full max-w-sm my-8">
+    <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-50 p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-white rounded-xl p-4 sm:p-5 w-full max-w-sm my-8">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-base font-medium">{isEditing ? "Заказ" : "Новый заказ"}</span>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-line/40" aria-label="Закрыть">
+          <span className="text-base font-medium">{isEditing ? t("modal.order") : t("modal.newOrder")}</span>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-line/40 shrink-0" aria-label="×">
             ×
           </button>
         </div>
 
-        <label className="text-sm text-ink/60">Клиент</label>
+        <label className="text-sm text-ink/60">{t("modal.client")}</label>
         <input
           className="w-full border border-line rounded-lg px-3 py-2 mb-3"
           value={client}
@@ -102,19 +102,15 @@ export default function OrderModal({
           placeholder="Иванов Александр"
         />
 
-        <div className="flex gap-3 mb-3">
-          <div className="flex-1">
-            <label className="text-sm text-ink/60">Телефон</label>
-            <input
-              className="w-full border border-line rounded-lg px-3 py-2"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+7 700 000 00 00"
-            />
-          </div>
-        </div>
+        <label className="text-sm text-ink/60">{t("modal.phone")}</label>
+        <input
+          className="w-full border border-line rounded-lg px-3 py-2 mb-3"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="+7 700 000 00 00"
+        />
 
-        <label className="text-sm text-ink/60">Адрес (замер / доставка)</label>
+        <label className="text-sm text-ink/60">{t("modal.address")}</label>
         <input
           className="w-full border border-line rounded-lg px-3 py-2 mb-3"
           value={address}
@@ -122,7 +118,7 @@ export default function OrderModal({
           placeholder="г. Астана, ул. Примерная, 12, кв. 5"
         />
 
-        <label className="text-sm text-ink/60">Изделие</label>
+        <label className="text-sm text-ink/60">{t("modal.product")}</label>
         <input
           className="w-full border border-line rounded-lg px-3 py-2 mb-3"
           value={title}
@@ -131,10 +127,10 @@ export default function OrderModal({
         />
 
         {(showMeasurementDate || showDeliveryDate) && (
-          <div className="flex gap-3 mb-3">
+          <div className="flex flex-col sm:flex-row gap-3 mb-3">
             {showMeasurementDate && (
               <div className="flex-1">
-                <label className="text-sm text-ink/60">Дата замера</label>
+                <label className="text-sm text-ink/60">{t("modal.measurementDate")}</label>
                 <input
                   type="date"
                   className="w-full border border-line rounded-lg px-3 py-2"
@@ -145,7 +141,7 @@ export default function OrderModal({
             )}
             {showDeliveryDate && (
               <div className="flex-1">
-                <label className="text-sm text-ink/60">Дата доставки</label>
+                <label className="text-sm text-ink/60">{t("modal.deliveryDate")}</label>
                 <input
                   type="date"
                   className="w-full border border-line rounded-lg px-3 py-2"
@@ -159,7 +155,7 @@ export default function OrderModal({
 
         <div className="flex gap-3 mb-3">
           <div className="flex-1">
-            <label className="text-sm text-ink/60">Ширина, мм</label>
+            <label className="text-sm text-ink/60">{t("modal.width")}</label>
             <input
               type="number"
               step={50}
@@ -169,7 +165,7 @@ export default function OrderModal({
             />
           </div>
           <div className="flex-1">
-            <label className="text-sm text-ink/60">Высота, мм</label>
+            <label className="text-sm text-ink/60">{t("modal.height")}</label>
             <input
               type="number"
               step={50}
@@ -180,7 +176,7 @@ export default function OrderModal({
           </div>
         </div>
 
-        <label className="text-sm text-ink/60">Материал</label>
+        <label className="text-sm text-ink/60">{t("modal.material")}</label>
         <select
           className="w-full border border-line rounded-lg px-3 py-2 mb-4"
           value={materialId}
@@ -193,47 +189,54 @@ export default function OrderModal({
           ))}
         </select>
 
-        <div className="flex justify-between items-center mb-2">
-          <label className="text-sm text-ink/60">Фурнитура (петли, ручки, направляющие…)</label>
-          <button type="button" onClick={addExtra} className="text-sm text-oak font-medium">
-            + добавить
+        <div className="flex justify-between items-center mb-2 gap-2">
+          <label className="text-sm text-ink/60">{t("modal.extras")}</label>
+          <button type="button" onClick={addExtra} className="text-sm text-oak font-medium shrink-0">
+            + {t("modal.addExtra")}
           </button>
         </div>
 
+        {/* Каждая позиция фурнитуры — отдельная карточка: название на всю ширину сверху,
+            количество/цена/сумма/удаление в строке снизу. Так не вылезает за границы на узких экранах. */}
         {extras.length > 0 && (
-          <div className="mb-1.5 space-y-2">
+          <div className="mb-2 space-y-2">
             {extras.map((extra) => (
-              <div key={extra.id} className="flex gap-2 items-center">
+              <div key={extra.id} className="border border-line rounded-lg p-2.5">
                 <input
-                  className="flex-1 border border-line rounded-lg px-2.5 py-1.5 text-sm"
+                  className="w-full border border-line rounded-lg px-2.5 py-1.5 text-sm mb-2"
                   placeholder="Петли Blum"
                   value={extra.name}
                   onChange={(e) => updateExtra(extra.id, "name", e.target.value)}
                 />
-                <input
-                  type="number"
-                  min={1}
-                  className="w-14 border border-line rounded-lg px-2 py-1.5 text-sm"
-                  placeholder="Кол-во"
-                  value={extra.quantity || 1}
-                  onChange={(e) => updateExtra(extra.id, "quantity", e.target.value)}
-                  title="Количество"
-                />
-                <input
-                  type="number"
-                  className="w-24 border border-line rounded-lg px-2.5 py-1.5 text-sm"
-                  placeholder="Цена/шт"
-                  value={extra.price || ""}
-                  onChange={(e) => updateExtra(extra.id, "price", e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => removeExtra(extra.id)}
-                  className="w-7 h-7 shrink-0 rounded-lg hover:bg-rust/10 text-rust"
-                  aria-label="Удалить позицию"
-                >
-                  ×
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={1}
+                    className="w-12 border border-line rounded-lg px-1.5 py-1.5 text-sm text-center shrink-0"
+                    value={extra.quantity || 1}
+                    onChange={(e) => updateExtra(extra.id, "quantity", e.target.value)}
+                    title={t("modal.qty")}
+                  />
+                  <span className="text-ink/30 text-xs shrink-0">×</span>
+                  <input
+                    type="number"
+                    className="w-0 flex-1 min-w-0 border border-line rounded-lg px-2 py-1.5 text-sm"
+                    placeholder={t("modal.pricePerUnit")}
+                    value={extra.price || ""}
+                    onChange={(e) => updateExtra(extra.id, "price", e.target.value)}
+                  />
+                  <span className="text-xs font-mono text-ink/50 shrink-0 whitespace-nowrap">
+                    {formatMoney((extra.price || 0) * (extra.quantity || 1))}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeExtra(extra.id)}
+                    className="w-6 h-6 shrink-0 rounded-lg hover:bg-rust/10 text-rust text-sm"
+                    aria-label="×"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -241,41 +244,41 @@ export default function OrderModal({
 
         {extras.length > 0 && (
           <div className="text-xs text-ink/50 mb-3 text-right">
-            Фурнитура: {formatMoney(extrasTotal)}
+            {t("modal.extrasTotal")}: {formatMoney(extrasTotal)}
           </div>
         )}
 
-        <label className="text-sm text-ink/60">Комментарий</label>
+        <label className="text-sm text-ink/60">{t("modal.comment")}</label>
         <textarea
           className="w-full border border-line rounded-lg px-3 py-2 mb-4 text-sm"
           rows={3}
-          placeholder="Особые пожелания, детали замера, договорённости с клиентом…"
+          placeholder={t("modal.commentPlaceholder")}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />
 
         <div className="bg-paper rounded-lg px-3 py-2 mb-4 flex justify-between items-center">
-          <span className="text-sm text-ink/60">Смета итого</span>
+          <span className="text-sm text-ink/60">{t("modal.total")}</span>
           <span className="font-mono font-medium text-oak">{formatMoney(price)}</span>
         </div>
 
         <div className="flex gap-2 mb-2">
           {isEditing && onDelete && (
             <button
-              className="border border-rust/30 text-rust rounded-lg px-4 py-2 font-medium"
+              className="border border-rust/30 text-rust rounded-lg px-4 py-2 font-medium shrink-0"
               onClick={onDelete}
             >
-              Удалить
+              {t("modal.delete")}
             </button>
           )}
           <button
             className="flex-1 bg-ink text-white rounded-lg py-2 font-medium"
             onClick={() =>
               onSave({
-                client: client.trim() || "Без имени",
+                client: client.trim() || "—",
                 phone: phone.trim(),
                 address: address.trim(),
-                title: title.trim() || "Заказ",
+                title: title.trim() || "—",
                 width,
                 height,
                 materialId,
@@ -287,16 +290,13 @@ export default function OrderModal({
               })
             }
           >
-            {isEditing ? "Сохранить изменения" : "Создать заказ"}
+            {isEditing ? t("modal.saveChanges") : t("modal.createOrder")}
           </button>
         </div>
 
         {isEditing && onMarkFailed && canMarkAsFailed(currentStatus) && (
-          <button
-            className="w-full text-sm text-rust/80 hover:text-rust py-1"
-            onClick={onMarkFailed}
-          >
-            Клиент отказался — отметить как неуспешный
+          <button className="w-full text-sm text-rust/80 hover:text-rust py-1" onClick={onMarkFailed}>
+            {t("modal.markFailed")}
           </button>
         )}
       </div>

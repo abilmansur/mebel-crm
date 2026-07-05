@@ -4,9 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { getOrCreateWorkspace } from "@/lib/workspace";
+import { useLanguage } from "@/lib/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,8 +21,11 @@ export default function LoginPage() {
   if (!isSupabaseConfigured || !supabase) {
     return (
       <div className="max-w-sm mx-auto p-6 mt-16 text-sm text-ink/60">
-        Supabase не настроен — приложение работает в демо-режиме без входа.
-        Перейди на <a className="underline" href="/">главную страницу</a>.
+        Supabase не настроен — приложение работает в демо-режиме без входа. Перейди на{" "}
+        <a className="underline" href="/">
+          главную страницу
+        </a>
+        .
       </div>
     );
   }
@@ -72,10 +78,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-sm mx-auto p-6 mt-16">
-      <h1 className="text-lg font-medium mb-1">Мебель CRM</h1>
+    <div className="max-w-sm mx-auto p-4 sm:p-6 mt-12 sm:mt-16">
+      <div className="flex justify-between items-start mb-1">
+        <h1 className="text-lg font-medium">Мебель CRM</h1>
+        <LanguageSwitcher />
+      </div>
       <p className="text-sm text-ink/60 mb-5">
-        {mode === "signin" ? "Вход в свой цех" : "Регистрация нового цеха"}
+        {mode === "signin" ? t("login.signin") : t("login.signup")}
       </p>
 
       <div className="flex gap-1 mb-4">
@@ -83,19 +92,19 @@ export default function LoginPage() {
           className={`px-3 py-1.5 rounded-lg text-sm ${mode === "signin" ? "bg-paper font-medium" : "text-ink/50"}`}
           onClick={() => setMode("signin")}
         >
-          Вход
+          {t("login.signin")}
         </button>
         <button
           className={`px-3 py-1.5 rounded-lg text-sm ${mode === "signup" ? "bg-paper font-medium" : "text-ink/50"}`}
           onClick={() => setMode("signup")}
         >
-          Регистрация
+          {t("login.signup")}
         </button>
       </div>
 
       {mode === "signup" && (
         <>
-          <label className="text-sm text-ink/60">Название цеха</label>
+          <label className="text-sm text-ink/60">{t("login.workspaceName")}</label>
           <input
             className="w-full border border-line rounded-lg px-3 py-2 mb-3"
             value={workspaceName}
@@ -105,7 +114,7 @@ export default function LoginPage() {
         </>
       )}
 
-      <label className="text-sm text-ink/60">Email</label>
+      <label className="text-sm text-ink/60">{t("login.email")}</label>
       <input
         type="email"
         className="w-full border border-line rounded-lg px-3 py-2 mb-3"
@@ -114,7 +123,7 @@ export default function LoginPage() {
         placeholder="master@example.com"
       />
 
-      <label className="text-sm text-ink/60">Пароль</label>
+      <label className="text-sm text-ink/60">{t("login.password")}</label>
       <input
         type="password"
         className="w-full border border-line rounded-lg px-3 py-2 mb-4"
@@ -130,7 +139,7 @@ export default function LoginPage() {
         onClick={handleSubmit}
         disabled={loading || !email || !password}
       >
-        {loading ? "Подождите…" : mode === "signin" ? "Войти" : "Создать цех"}
+        {loading ? t("login.wait") : mode === "signin" ? t("login.enterBtn") : t("login.createBtn")}
       </button>
     </div>
   );
