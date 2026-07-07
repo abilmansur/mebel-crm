@@ -8,6 +8,7 @@ export interface Conversation {
   messages: InboxMessage[];
   lastMessage: InboxMessage;
   canReply: boolean;
+  unreadCount: number;
 }
 
 // Группируем по chat_id (Telegram) — сообщения без chat_id (например, старые демо-заявки
@@ -36,10 +37,17 @@ export function buildConversations(messages: InboxMessage[]): Conversation[] {
       messages: sorted,
       lastMessage: last,
       canReply: Boolean(last.chat_id && last.channel === "telegram"),
+      unreadCount: sorted.filter((m) => m.direction === "in" && !m.read).length,
     });
   });
 
   return conversations.sort(
     (a, b) => new Date(b.lastMessage.created_at || 0).getTime() - new Date(a.lastMessage.created_at || 0).getTime()
   );
+}
+
+// Сколько ЧАТОВ (не сообщений) содержат хотя бы одно непрочитанное входящее сообщение —
+// именно это число показывается бейджем на вкладке "Входящие"
+export function countUnreadConversations(messages: InboxMessage[]): number {
+  return buildConversations(messages).filter((c) => c.unreadCount > 0).length;
 }

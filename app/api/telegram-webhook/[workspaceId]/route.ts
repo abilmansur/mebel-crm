@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { generateAIReply } from "@/lib/claude";
+import { findMatchingPhoto } from "@/lib/photoMatch";
 
 export async function POST(req: NextRequest, { params }: { params: { workspaceId: string } }) {
   const workspaceId = params.workspaceId;
@@ -31,6 +32,18 @@ export async function POST(req: NextRequest, { params }: { params: { workspaceId
       });
     } catch (err) {
       console.error("Не удалось отправить сообщение в Telegram:", err);
+    }
+  }
+
+  async function sendTelegramPhoto(chatId: number, photoUrl: string, caption: string) {
+    try {
+      await fetch(`https://api.telegram.org/bot${botCfg!.bot_token}/sendPhoto`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption: caption || undefined }),
+      });
+    } catch (err) {
+      console.error("Не удалось отправить фото в Telegram:", err);
     }
   }
 
@@ -69,6 +82,14 @@ export async function POST(req: NextRequest, { params }: { params: { workspaceId
     .select()
     .single();
 
+  // Подходящее фото отправляем независимо от режима ИИ — это низкорисковое действие
+  // (просто пример работы из портфолио), в отличие от текстового ответа
+  const { data: photos } = await supabaseAdmin.from("ai_photos").select("*").eq("workspace_id", workspaceId);
+  const matchedPhoto = photos?.length ? findMatchingPhoto(text, photos as any) : null;
+  if (matchedPhoto) {
+    await sendTelegramPhoto(chatId, matchedPhoto.image_url, matchedPhoto.caption);
+  }
+
   const { data: aiConfig } = await supabaseAdmin
     .from("ai_config")
     .select("*")
@@ -89,7 +110,13 @@ export async function POST(req: NextRequest, { params }: { params: { workspaceId
       content: m.text,
     }));
 
-    const reply = await generateAIReply(aiConfig.prompt, conversationHistory);
+    // База знаний (факты: цены, сроки, FAQ) добавляется к промпту личности отдельным блоком —
+    // так легче редактировать одно без другого
+    const systemPrompt = aiConfig.knowledge_base?.trim()
+      ? `${aiConfig.prompt}\n\n---\nБаза знаний (факты о цехе, используй для ответов):\n${aiConfig.knowledge_base}`
+      : aiConfig.prompt;
+
+    const reply = await generateAIReply(systemPrompt, conversationHistory);
 
     if (reply) {
       if (aiConfig.auto_reply) {

@@ -48,6 +48,7 @@ export interface InboxMessage {
   channel: Channel;
   chat_id: number | null;
   direction: Direction;
+  read: boolean;
   client_name: string;
   text: string;
   ai_suggestion: string;
@@ -58,7 +59,15 @@ export interface AIConfig {
   bot_name: string;
   description: string;
   prompt: string;
+  knowledge_base: string;
   auto_reply: boolean;
+}
+
+export interface AIPhoto {
+  id: string;
+  keywords: string;
+  image_url: string;
+  caption: string;
 }
 
 export const STAGES: { id: Stage; label: string }[] = [

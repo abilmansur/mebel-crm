@@ -91,6 +91,43 @@ const dict: Record<string, Record<Lang, string>> = {
   },
 
   "nav.aiAssistant": { ru: "ИИ-ассистент", kk: "ИИ-ассистент", en: "AI assistant" },
+  "nav.channels": { ru: "Каналы", kk: "Арналар", en: "Channels" },
+
+  "channels.comingSoon": { ru: "скоро", kk: "жақында", en: "coming soon" },
+  "channels.instagramNote": {
+    ru: "Подключение через Instagram Direct — в разработке. Потребуется профессиональный аккаунт и подтверждение Meta.",
+    kk: "Instagram Direct арқылы қосылу — әзірленуде.",
+    en: "Instagram Direct connection is in development. Requires a professional account and Meta approval.",
+  },
+  "channels.whatsappNote": {
+    ru: "Подключение через WhatsApp Business API — в разработке. Потребуется верификация Meta Business.",
+    kk: "WhatsApp Business API арқылы қосылу — әзірленуде.",
+    en: "WhatsApp Business API connection is in development. Requires Meta Business verification.",
+  },
+
+  "ai.section.prompt": { ru: "Промпт", kk: "Промпт", en: "Prompt" },
+  "ai.section.knowledge": { ru: "База знаний", kk: "Білім базасы", en: "Knowledge base" },
+  "ai.section.photos": { ru: "Фото", kk: "Фото", en: "Photos" },
+  "ai.knowledgeBase": { ru: "База знаний (факты о цехе)", kk: "Білім базасы (цех туралы деректер)", en: "Knowledge base (facts about the shop)" },
+  "ai.knowledgeBasePlaceholder": {
+    ru: "Цены: ЛДСП 16мм — от 8500₸/м²...\nСроки: шкафы 10-14 дней, кухни 3-4 недели...\nЧастые вопросы: доставка платная в пределах города 5000₸...",
+    kk: "Бағалар: ЛДСП 16мм — 8500₸/м²-ден...",
+    en: "Prices: 16mm particle board — from 8500₸/m²...\nTimelines: cabinets 10-14 days...",
+  },
+  "ai.knowledgeBaseNote": {
+    ru: "Списком, свободным текстом — цены, сроки, состав материалов, частые вопросы и ответы. ИИ использует это, чтобы отвечать точно, а не выдумывать.",
+    kk: "Тізіммен, еркін мәтінмен — бағалар, мерзімдер, жиі қойылатын сұрақтар.",
+    en: "Free-form list — prices, timelines, materials, FAQ. The AI uses this to answer accurately instead of guessing.",
+  },
+  "ai.photosNote": {
+    ru: "Бот отправит фото автоматически, если в сообщении клиента встретится одно из ключевых слов (через запятую).",
+    kk: "Клиент хабарында кілт сөз кездессе, бот фото автоматты түрде жібереді.",
+    en: "The bot sends the photo automatically when the client's message contains one of the keywords (comma-separated).",
+  },
+  "ai.photoKeywords": { ru: "Ключевые слова: шкаф, купе, гардероб", kk: "Кілт сөздер: шкаф, гардероб", en: "Keywords: wardrobe, closet" },
+  "ai.photoUrl": { ru: "Ссылка на фото (URL)", kk: "Фото сілтемесі (URL)", en: "Photo URL" },
+  "ai.photoCaption": { ru: "Подпись к фото (необязательно)", kk: "Фото сипаттамасы (міндетті емес)", en: "Caption (optional)" },
+  "ai.addPhoto": { ru: "Добавить фото", kk: "Фото қосу", en: "Add photo" },
   "ai.title": { ru: "Настройка ИИ-ассистента", kk: "ИИ-ассистентті баптау", en: "AI assistant settings" },
   "ai.botName": { ru: "Имя ассистента", kk: "Ассистент аты", en: "Assistant name" },
   "ai.description": { ru: "Описание", kk: "Сипаттама", en: "Description" },
@@ -132,6 +169,21 @@ const dict: Record<string, Record<Lang, string>> = {
   "telegramConnect.connected": { ru: "Подключён бот", kk: "Бот қосылды", en: "Bot connected" },
   "telegramConnect.disconnect": { ru: "Отключить", kk: "Ажырату", en: "Disconnect" },
   "telegramConnect.error": { ru: "Не удалось подключить бота. Проверь токен.", kk: "Ботты қосу мүмкін болмады. Токенді тексер.", en: "Couldn't connect the bot. Check the token." },
+  "telegramConnect.errorServer": {
+    ru: "Сервер не настроен для подключения ботов — сообщи разработчику: не хватает SUPABASE_SERVICE_ROLE_KEY на сервере.",
+    kk: "Сервер боттарды қосуға дайын емес — SUPABASE_SERVICE_ROLE_KEY жетіспейді.",
+    en: "The server isn't configured to connect bots — SUPABASE_SERVICE_ROLE_KEY is missing on the server.",
+  },
+  "telegramConnect.errorToken": {
+    ru: "Неверный токен бота. Проверь, что скопировал его полностью, без пробелов.",
+    kk: "Бот токені қате. Толық көшіргеніңді тексер.",
+    en: "Invalid bot token. Make sure you copied it completely.",
+  },
+  "telegramConnect.errorWebhook": {
+    ru: "Токен верный, но не удалось зарегистрировать вебхук в Telegram. Попробуй ещё раз.",
+    kk: "Токен дұрыс, бірақ вебхук тіркелмеді. Қайталап көр.",
+    en: "The token is valid, but registering the webhook with Telegram failed. Try again.",
+  },
 
   "materials.title": { ru: "Материалы и цены", kk: "Материалдар мен бағалар", en: "Materials & prices" },
   "materials.note": {

@@ -66,6 +66,7 @@ create table inbox_messages (
   channel text not null check (channel in ('whatsapp', 'telegram', 'phone', 'site')),
   chat_id bigint,                                -- id чата в канале (Telegram), для threading и ответа
   direction text not null default 'in' check (direction in ('in', 'out')),
+  read boolean not null default false,           -- для счётчика непрочитанных чатов во Входящих
   client_name text not null,
   text text not null,
   ai_suggestion text,
@@ -78,8 +79,19 @@ create table ai_config (
   bot_name text default '',
   description text default '',
   prompt text default '',
+  knowledge_base text default '',                -- факты: цены, сроки, частые вопросы-ответы
   auto_reply boolean not null default false,
   updated_at timestamptz default now()
+);
+
+-- Примеры фото, которые бот может отправлять по ключевым словам
+create table ai_photos (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid references workspaces(id) not null,
+  keywords text not null,
+  image_url text not null,
+  caption text default '',
+  created_at timestamptz default now()
 );
 
 -- Каждый цех подключает своего Telegram-бота своим токеном (полученным у @BotFather)
@@ -99,6 +111,7 @@ alter table materials enable row level security;
 alter table inbox_messages enable row level security;
 alter table telegram_bots enable row level security;
 alter table ai_config enable row level security;
+alter table ai_photos enable row level security;
 
 create policy "own_workspace" on workspaces
   for all using (owner_id = auth.uid());
@@ -119,6 +132,9 @@ create policy "workspace_isolation_telegram_bots" on telegram_bots
   for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
 
 create policy "workspace_isolation_ai_config" on ai_config
+  for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
+
+create policy "workspace_isolation_ai_photos" on ai_photos
   for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
 
 -- Ничего вручную вставлять не нужно: workspace и стартовые материалы

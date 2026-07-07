@@ -20,12 +20,12 @@ async function verifyOwnership(req: NextRequest, workspaceId: string) {
 
 export async function POST(req: NextRequest) {
   if (!supabaseAdmin) {
-    return NextResponse.json({ error: "supabase not configured" }, { status: 500 });
+    return NextResponse.json({ error: "server_not_configured" }, { status: 500 });
   }
 
   const { workspaceId, botToken } = await req.json();
   if (!workspaceId || !botToken?.trim()) {
-    return NextResponse.json({ error: "bad request" }, { status: 400 });
+    return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
 
   const user = await verifyOwnership(req, workspaceId);
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   const meRes = await fetch(`https://api.telegram.org/bot${botToken.trim()}/getMe`);
   const meData = await meRes.json();
   if (!meData.ok) {
-    return NextResponse.json({ error: "Неверный токен бота. Проверь, что скопировал его полностью." }, { status: 400 });
+    return NextResponse.json({ error: "invalid_token" }, { status: 400 });
   }
 
   const botUsername: string = meData.result.username;
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   );
   const setWebhookData = await setWebhookRes.json();
   if (!setWebhookData.ok) {
-    return NextResponse.json({ error: "Не удалось зарегистрировать вебхук в Telegram" }, { status: 502 });
+    return NextResponse.json({ error: "webhook_failed" }, { status: 502 });
   }
 
   await supabaseAdmin.from("telegram_bots").upsert({

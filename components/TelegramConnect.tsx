@@ -48,7 +48,13 @@ export default function TelegramConnect({ workspaceId }: { workspaceId: string |
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error || t("telegramConnect.error"));
+        const errorMessages: Record<string, string> = {
+          server_not_configured: t("telegramConnect.errorServer"),
+          invalid_token: t("telegramConnect.errorToken"),
+          webhook_failed: t("telegramConnect.errorWebhook"),
+          forbidden: t("telegramConnect.error"),
+        };
+        setError(errorMessages[json.error] || t("telegramConnect.error"));
       } else {
         setBotUsername(json.botUsername);
         setTokenInput("");

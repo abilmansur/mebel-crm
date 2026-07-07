@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { getOrCreateWorkspace } from "@/lib/workspace";
-import { Material, Order, InboxMessage, Stage, Extra, AIConfig } from "@/lib/types";
+import { Material, Order, InboxMessage, Stage, Extra, AIConfig, AIPhoto } from "@/lib/types";
 import { calcOrderTotal } from "@/lib/calculator";
 import { demoMaterials, buildDemoOrders, demoInbox } from "@/lib/demoData";
-import { Conversation } from "@/lib/conversations";
+import { Conversation, buildConversations, countUnreadConversations } from "@/lib/conversations";
 import Inbox from "@/components/Inbox";
 import Board from "@/components/Board";
 import Analytics from "@/components/Analytics";
@@ -15,20 +15,23 @@ import OrderModal from "@/components/OrderModal";
 import MaterialSettings from "@/components/MaterialSettings";
 import AIAssistantSettings from "@/components/AIAssistantSettings";
 import ConversationThread from "@/components/ConversationThread";
+import ChannelsSettings from "@/components/ChannelsSettings";
 import { useLanguage } from "@/lib/LanguageContext";
 
-const emptyAIConfig: AIConfig = { bot_name: "", description: "", prompt: "", auto_reply: false };
+const emptyAIConfig: AIConfig = { bot_name: "", description: "", prompt: "", knowledge_base: "", auto_reply: false };
+const INBOX_POLL_INTERVAL_MS = 8000;
 
 export default function Home() {
   const router = useRouter();
   const { t } = useLanguage();
-  const [tab, setTab] = useState<"inbox" | "board" | "analytics">("inbox");
+  const [tab, setTab] = useState<"inbox" | "board" | "analytics" | "channels">("inbox");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState("Мебельный цех");
   const [materials, setMaterials] = useState<Material[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
   const [aiConfig, setAIConfig] = useState<AIConfig>(emptyAIConfig);
+  const [aiPhotos, setAIPhotos] = useState<AIPhoto[]>([]);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [sendingReply, setSendingReply] = useState(false);
@@ -67,11 +70,12 @@ export default function Home() {
       setWorkspaceId(workspace.id);
       setWorkspaceName(workspace.name);
 
-      const [{ data: mats }, { data: ords }, { data: msgs }, { data: aiCfg }] = await Promise.all([
+      const [{ data: mats }, { data: ords }, { data: msgs }, { data: aiCfg }, { data: photos }] = await Promise.all([
         supabase.from("materials").select("*").eq("workspace_id", workspace.id),
         supabase.from("orders").select("*").eq("workspace_id", workspace.id),
         supabase.from("inbox_messages").select("*").eq("workspace_id", workspace.id),
         supabase.from("ai_config").select("*").eq("workspace_id", workspace.id).maybeSingle(),
+        supabase.from("ai_photos").select("*").eq("workspace_id", workspace.id),
       ]);
 
       if (aiCfg) {
@@ -79,9 +83,11 @@ export default function Home() {
           bot_name: aiCfg.bot_name || "",
           description: aiCfg.description || "",
           prompt: aiCfg.prompt || "",
+          knowledge_base: aiCfg.knowledge_base || "",
           auto_reply: aiCfg.auto_reply || false,
         });
       }
+      setAIPhotos(photos || []);
 
       const loadedMaterials = mats && mats.length ? mats : demoMaterials;
       setMaterials(loadedMaterials);
@@ -110,6 +116,26 @@ export default function Home() {
     }
     init();
   }, [router]);
+
+  // Автообновление инбокса — без этого новые сообщения появлялись только после ручного обновления страницы
+  useEffect(() => {
+    if (!isSupabaseConfigured || !workspaceId) return;
+    const interval = setInterval(() => {
+      handleRefreshInbox();
+    }, INBOX_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId]);
+
+  // Если открыт диалог и в инбокс пришли новые сообщения этого чата — обновляем открытое окно тоже
+  useEffect(() => {
+    if (!activeConversation) return;
+    const updated = buildConversations(inbox).find((c) => c.key === activeConversation.key);
+    if (updated && updated.messages.length !== activeConversation.messages.length) {
+      setActiveConversation(updated);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inbox]);
 
   async function handleSaveOrder(data: {
     client: string;
@@ -300,8 +326,16 @@ export default function Home() {
     setInbox(msgs || []);
   }
 
-  function handleOpenConversation(conversation: Conversation) {
+  async function handleOpenConversation(conversation: Conversation) {
     setActiveConversation(conversation);
+
+    const unreadIds = conversation.messages.filter((m) => m.direction === "in" && !m.read).map((m) => m.id);
+    if (unreadIds.length === 0) return;
+
+    setInbox((prev) => prev.map((m) => (unreadIds.includes(m.id) ? { ...m, read: true } : m)));
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from("inbox_messages").update({ read: true }).in("id", unreadIds);
+    }
   }
 
   async function handleSendReply(text: string) {
@@ -314,6 +348,7 @@ export default function Home() {
       channel: "telegram",
       chat_id: activeConversation.chatId,
       direction: "out",
+      read: true,
       client_name: activeConversation.clientName,
       text,
       ai_suggestion: "",
@@ -359,6 +394,26 @@ export default function Home() {
     setShowAIAssistant(false);
     if (isSupabaseConfigured && supabase && workspaceId) {
       await supabase.from("ai_config").upsert({ workspace_id: workspaceId, ...data });
+    }
+  }
+
+  async function handleAddPhoto(data: { keywords: string; image_url: string; caption: string }) {
+    if (isSupabaseConfigured && supabase && workspaceId) {
+      const { data: created } = await supabase
+        .from("ai_photos")
+        .insert({ ...data, workspace_id: workspaceId })
+        .select()
+        .single();
+      if (created) setAIPhotos((prev) => [...prev, created as AIPhoto]);
+    } else {
+      setAIPhotos((prev) => [...prev, { id: crypto.randomUUID(), ...data }]);
+    }
+  }
+
+  async function handleDeletePhoto(id: string) {
+    setAIPhotos((prev) => prev.filter((p) => p.id !== id));
+    if (isSupabaseConfigured && supabase) {
+      await supabase.from("ai_photos").delete().eq("id", id);
     }
   }
 
@@ -431,7 +486,7 @@ export default function Home() {
           className={`px-3.5 py-2 rounded-lg text-sm whitespace-nowrap ${tab === "inbox" ? "bg-paper font-medium" : "text-ink/50"}`}
           onClick={() => setTab("inbox")}
         >
-          {t("nav.inbox")} {inbox.length > 0 && `(${inbox.length})`}
+          {t("nav.inbox")} {countUnreadConversations(inbox) > 0 && `(${countUnreadConversations(inbox)})`}
         </button>
         <button
           className={`px-3.5 py-2 rounded-lg text-sm whitespace-nowrap ${tab === "board" ? "bg-paper font-medium" : "text-ink/50"}`}
@@ -445,15 +500,16 @@ export default function Home() {
         >
           {t("nav.analytics")}
         </button>
+        <button
+          className={`px-3.5 py-2 rounded-lg text-sm whitespace-nowrap ${tab === "channels" ? "bg-paper font-medium" : "text-ink/50"}`}
+          onClick={() => setTab("channels")}
+        >
+          {t("nav.channels")}
+        </button>
       </div>
 
       {tab === "inbox" && (
-        <Inbox
-          messages={inbox}
-          onOpenConversation={handleOpenConversation}
-          onRefresh={handleRefreshInbox}
-          workspaceId={workspaceId}
-        />
+        <Inbox messages={inbox} onOpenConversation={handleOpenConversation} onRefresh={handleRefreshInbox} />
       )}
       {tab === "board" && (
         <Board
@@ -464,6 +520,7 @@ export default function Home() {
         />
       )}
       {tab === "analytics" && <Analytics orders={orders} />}
+      {tab === "channels" && <ChannelsSettings workspaceId={workspaceId} />}
 
       {showOrderModal && (
         <OrderModal
@@ -494,8 +551,11 @@ export default function Home() {
       {showAIAssistant && (
         <AIAssistantSettings
           config={aiConfig}
+          photos={aiPhotos}
           onClose={() => setShowAIAssistant(false)}
           onSave={handleSaveAIConfig}
+          onAddPhoto={handleAddPhoto}
+          onDeletePhoto={handleDeletePhoto}
         />
       )}
 
