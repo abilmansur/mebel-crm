@@ -16,6 +16,7 @@ import MaterialSettings from "@/components/MaterialSettings";
 import AIAssistantSettings from "@/components/AIAssistantSettings";
 import ConversationThread from "@/components/ConversationThread";
 import ChannelsSettings from "@/components/ChannelsSettings";
+import CalendarView from "@/components/CalendarView";
 import BalanceModal from "@/components/BalanceModal";
 import { formatMoney } from "@/lib/format";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -26,6 +27,9 @@ const emptyAIConfig: AIConfig = {
   prompt: "",
   knowledge_base: "",
   provider: "anthropic",
+  reply_delay_seconds: 0,
+  typing_simulation: false,
+  split_long_messages: false,
   auto_reply: false,
 };
 const INBOX_POLL_INTERVAL_MS = 8000;
@@ -33,7 +37,7 @@ const INBOX_POLL_INTERVAL_MS = 8000;
 export default function Home() {
   const router = useRouter();
   const { t } = useLanguage();
-  const [tab, setTab] = useState<"inbox" | "board" | "analytics" | "channels">("inbox");
+  const [tab, setTab] = useState<"inbox" | "board" | "analytics" | "channels" | "calendar">("inbox");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState("Мебельный цех");
   const [balance, setBalance] = useState(0);
@@ -99,6 +103,9 @@ export default function Home() {
           prompt: aiCfg.prompt || "",
           knowledge_base: aiCfg.knowledge_base || "",
           provider: aiCfg.provider === "openai" ? "openai" : "anthropic",
+          reply_delay_seconds: aiCfg.reply_delay_seconds || 0,
+          typing_simulation: aiCfg.typing_simulation || false,
+          split_long_messages: aiCfg.split_long_messages || false,
           auto_reply: aiCfg.auto_reply || false,
         });
       }
@@ -534,6 +541,12 @@ export default function Home() {
           {t("nav.analytics")}
         </button>
         <button
+          className={`px-3.5 py-2 rounded-lg text-sm whitespace-nowrap ${tab === "calendar" ? "bg-paper font-medium" : "text-ink/50"}`}
+          onClick={() => setTab("calendar")}
+        >
+          {t("nav.calendar")}
+        </button>
+        <button
           className={`px-3.5 py-2 rounded-lg text-sm whitespace-nowrap ${tab === "channels" ? "bg-paper font-medium" : "text-ink/50"}`}
           onClick={() => setTab("channels")}
         >
@@ -542,7 +555,13 @@ export default function Home() {
       </div>
 
       {tab === "inbox" && (
-        <Inbox messages={inbox} onOpenConversation={handleOpenConversation} onRefresh={handleRefreshInbox} />
+        <Inbox
+          messages={inbox}
+          onOpenConversation={handleOpenConversation}
+          onRefresh={handleRefreshInbox}
+          balance={isSupabaseConfigured ? balance : undefined}
+          onOpenBalance={() => setShowBalance(true)}
+        />
       )}
       {tab === "board" && (
         <Board
@@ -553,6 +572,7 @@ export default function Home() {
         />
       )}
       {tab === "analytics" && <Analytics orders={orders} />}
+      {tab === "calendar" && <CalendarView orders={orders} onOrderClick={handleOrderClick} />}
       {tab === "channels" && <ChannelsSettings workspaceId={workspaceId} />}
 
       {showOrderModal && (

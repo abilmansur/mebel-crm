@@ -22,7 +22,7 @@ export default function AIAssistantSettings({
   onDeletePhoto: (id: string) => void;
 }) {
   const { t } = useLanguage();
-  const [section, setSection] = useState<"prompt" | "knowledge" | "photos">("prompt");
+  const [section, setSection] = useState<"prompt" | "knowledge" | "photos" | "extensions">("prompt");
 
   const [botName, setBotName] = useState(config.bot_name);
   const [description, setDescription] = useState(config.description);
@@ -30,6 +30,9 @@ export default function AIAssistantSettings({
   const [knowledgeBase, setKnowledgeBase] = useState(config.knowledge_base);
   const [provider, setProvider] = useState<"anthropic" | "openai">(config.provider || "anthropic");
   const [autoReply, setAutoReply] = useState(config.auto_reply);
+  const [replyDelay, setReplyDelay] = useState(config.reply_delay_seconds || 0);
+  const [typingSimulation, setTypingSimulation] = useState(config.typing_simulation || false);
+  const [splitLongMessages, setSplitLongMessages] = useState(config.split_long_messages || false);
 
   const [photoKeywords, setPhotoKeywords] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
@@ -81,7 +84,7 @@ export default function AIAssistantSettings({
         </div>
 
         <div className="flex gap-1 bg-paper rounded-lg p-1 mb-4">
-          {(["prompt", "knowledge", "photos"] as const).map((s) => (
+          {(["prompt", "knowledge", "photos", "extensions"] as const).map((s) => (
             <button
               key={s}
               type="button"
@@ -251,6 +254,62 @@ export default function AIAssistantSettings({
           </>
         )}
 
+        {section === "extensions" && (
+          <>
+            <p className="text-xs text-ink/50 mb-3">{t("ai.extensionsNote")}</p>
+
+            <div className="border border-line rounded-lg p-3 mb-3">
+              <label className="text-sm font-medium block mb-1">{t("ai.replyDelay")}</label>
+              <p className="text-xs text-ink/50 mb-2">{t("ai.replyDelayNote")}</p>
+              <input
+                type="number"
+                min={0}
+                max={15}
+                value={replyDelay}
+                onChange={(e) => setReplyDelay(Number(e.target.value))}
+                className="w-24 border border-line rounded-lg px-2.5 py-1.5 text-sm"
+              />
+              <span className="text-xs text-ink/40 ml-2">{t("ai.seconds")}</span>
+            </div>
+
+            <div className="flex items-center justify-between border border-line rounded-lg px-3 py-2.5 mb-3">
+              <div>
+                <div className="text-sm font-medium">{t("ai.typingSimulation")}</div>
+                <div className="text-xs text-ink/50">{t("ai.typingSimulationNote")}</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={typingSimulation}
+                  onChange={(e) => setTypingSimulation(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <span className="w-11 h-6 rounded-full bg-line peer-checked:bg-oak transition-colors" />
+                <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-surface shadow-sm transition-transform peer-checked:translate-x-5" />
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between border border-line rounded-lg px-3 py-2.5 mb-3">
+              <div>
+                <div className="text-sm font-medium">{t("ai.splitMessages")}</div>
+                <div className="text-xs text-ink/50">{t("ai.splitMessagesNote")}</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={splitLongMessages}
+                  onChange={(e) => setSplitLongMessages(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <span className="w-11 h-6 rounded-full bg-line peer-checked:bg-oak transition-colors" />
+                <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-surface shadow-sm transition-transform peer-checked:translate-x-5" />
+              </label>
+            </div>
+
+            <p className="text-xs text-ink/40">{t("ai.batchingComingSoon")}</p>
+          </>
+        )}
+
         <button
           type="button"
           className="w-full bg-accent text-accent-ink rounded-lg py-2.5 font-medium mt-4"
@@ -261,6 +320,9 @@ export default function AIAssistantSettings({
               prompt,
               knowledge_base: knowledgeBase,
               provider,
+              reply_delay_seconds: replyDelay,
+              typing_simulation: typingSimulation,
+              split_long_messages: splitLongMessages,
               auto_reply: autoReply,
             })
           }

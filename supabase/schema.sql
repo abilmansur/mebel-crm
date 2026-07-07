@@ -82,6 +82,9 @@ create table ai_config (
   prompt text default '',
   knowledge_base text default '',                -- факты: цены, сроки, частые вопросы-ответы
   provider text not null default 'anthropic' check (provider in ('anthropic', 'openai')),
+  reply_delay_seconds integer not null default 0,   -- пауза перед ответом, сек
+  typing_simulation boolean not null default false, -- показывать "печатает..." перед ответом
+  split_long_messages boolean not null default false, -- делить длинный ответ на несколько сообщений
   auto_reply boolean not null default false,
   updated_at timestamptz default now()
 );

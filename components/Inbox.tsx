@@ -15,16 +15,29 @@ export default function Inbox({
   messages,
   onOpenConversation,
   onRefresh,
+  balance,
+  onOpenBalance,
 }: {
   messages: InboxMessage[];
   onOpenConversation: (conversation: Conversation) => void;
   onRefresh: () => void;
+  balance?: number;
+  onOpenBalance?: () => void;
 }) {
   const { t } = useLanguage();
   const conversations = buildConversations(messages);
 
   return (
     <div>
+      {typeof balance === "number" && balance <= 0 && (
+        <button
+          onClick={onOpenBalance}
+          className="w-full text-left bg-rust/10 text-rust rounded-lg px-3 py-2 mb-3 text-sm hover:bg-rust/15"
+        >
+          ⚠ {t("balance.lowWarningInbox")}
+        </button>
+      )}
+
       <div className="flex justify-end mb-2">
         <button onClick={onRefresh} className="text-xs text-ink/50 hover:text-ink flex items-center gap-1">
           ↻ {t("inbox.refresh")}

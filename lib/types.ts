@@ -61,6 +61,9 @@ export interface AIConfig {
   prompt: string;
   knowledge_base: string;
   provider: "anthropic" | "openai";
+  reply_delay_seconds: number;
+  typing_simulation: boolean;
+  split_long_messages: boolean;
   auto_reply: boolean;
 }
 

@@ -92,6 +92,10 @@ const dict: Record<string, Record<Lang, string>> = {
 
   "nav.aiAssistant": { ru: "ИИ-ассистент", kk: "ИИ-ассистент", en: "AI assistant" },
   "nav.channels": { ru: "Каналы", kk: "Арналар", en: "Channels" },
+  "nav.calendar": { ru: "Календарь", kk: "Күнтізбе", en: "Calendar" },
+  "calendar.empty": { ru: "Пока нет предстоящих замеров или доставок.", kk: "Алдағы өлшеулер немесе жеткізулер жоқ.", en: "No upcoming measurements or deliveries." },
+  "calendar.measurement": { ru: "замер", kk: "өлшеу", en: "measurement" },
+  "calendar.delivery": { ru: "доставка", kk: "жеткізу", en: "delivery" },
 
   "channels.comingSoon": { ru: "скоро", kk: "жақында", en: "coming soon" },
   "channels.instagramNote": {
@@ -108,6 +112,36 @@ const dict: Record<string, Record<Lang, string>> = {
   "ai.section.prompt": { ru: "Промпт", kk: "Промпт", en: "Prompt" },
   "ai.section.knowledge": { ru: "База знаний", kk: "Білім базасы", en: "Knowledge base" },
   "ai.section.photos": { ru: "Фото", kk: "Фото", en: "Photos" },
+  "ai.section.extensions": { ru: "Расширения", kk: "Кеңейтулер", en: "Extensions" },
+  "ai.extensionsNote": {
+    ru: "Дополнительные настройки, которые делают переписку менее «ботовской».",
+    kk: "Хат алмасуды табиғи етуге арналған қосымша баптаулар.",
+    en: "Extra settings that make the conversation feel less robotic.",
+  },
+  "ai.replyDelay": { ru: "Задержка перед ответом", kk: "Жауап алдындағы кідіріс", en: "Delay before reply" },
+  "ai.replyDelayNote": {
+    ru: "Пауза перед отправкой ответа — чтобы не выглядело как мгновенный автоответ",
+    kk: "Жауап жіберу алдындағы кідіріс",
+    en: "Pause before sending the reply, so it doesn't look instant",
+  },
+  "ai.seconds": { ru: "сек", kk: "сек", en: "sec" },
+  "ai.typingSimulation": { ru: "Имитация набора текста", kk: "Теру имитациясы", en: "Typing simulation" },
+  "ai.typingSimulationNote": {
+    ru: "Перед ответом клиент видит «печатает…» — пауза пропорциональна длине ответа",
+    kk: "Жауап алдында клиент «теруде…» көреді",
+    en: "Client sees \"typing…\" before the reply arrives",
+  },
+  "ai.splitMessages": { ru: "Делить длинный ответ на части", kk: "Ұзын жауапты бөліктерге бөлу", en: "Split long replies" },
+  "ai.splitMessagesNote": {
+    ru: "Длинный ответ уходит несколькими короткими сообщениями вместо одной стены текста",
+    kk: "Ұзын жауап бірнеше қысқа хабарлама болып жіберіледі",
+    en: "A long reply is sent as several short messages instead of one wall of text",
+  },
+  "ai.batchingComingSoon": {
+    ru: "Накопление быстрых сообщений клиента в одно — в разработке (требует отдельной инфраструктуры очередей).",
+    kk: "Клиенттің тез хабарламаларын жинақтау — әзірленуде.",
+    en: "Batching rapid client messages into one — in development (requires a separate queue infrastructure).",
+  },
   "ai.knowledgeBase": { ru: "База знаний (факты о цехе)", kk: "Білім базасы (цех туралы деректер)", en: "Knowledge base (facts about the shop)" },
   "ai.knowledgeBasePlaceholder": {
     ru: "Цены: ЛДСП 16мм — от 8500₸/м²...\nСроки: шкафы 10-14 дней, кухни 3-4 недели...\nЧастые вопросы: доставка платная в пределах города 5000₸...",
@@ -139,6 +173,11 @@ const dict: Record<string, Record<Lang, string>> = {
     ru: "Баланс исчерпан — ИИ-ассистент временно не отвечает клиентам автоматически. Пополни, чтобы возобновить.",
     kk: "Баланс таусылды — ИИ-ассистент клиенттерге автоматты жауап бермейді. Толықтырыңыз.",
     en: "Balance is empty — the AI assistant has paused automatic replies. Top up to resume.",
+  },
+  "balance.lowWarningInbox": {
+    ru: "Баланс исчерпан — ИИ не отвечает клиентам автоматически. Нажми, чтобы пополнить.",
+    kk: "Баланс таусылды — ИИ автоматты жауап бермейді. Толықтыру үшін басыңыз.",
+    en: "Balance is empty — AI isn't auto-replying. Tap to top up.",
   },
   "balance.amount": { ru: "Сумма пополнения, ₸", kk: "Толықтыру сомасы, ₸", en: "Top-up amount, ₸" },
   "balance.topupBtn": { ru: "Пополнить", kk: "Толықтыру", en: "Top up" },

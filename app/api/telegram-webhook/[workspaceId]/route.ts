@@ -4,6 +4,8 @@ import { generateLLMReply, LLMProvider } from "@/lib/llm";
 import { calculateCostKzt } from "@/lib/pricing";
 import { findMatchingPhoto } from "@/lib/photoMatch";
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function POST(req: NextRequest, { params }: { params: { workspaceId: string } }) {
   const workspaceId = params.workspaceId;
 
@@ -45,6 +47,18 @@ export async function POST(req: NextRequest, { params }: { params: { workspaceId
       });
     } catch (err) {
       console.error("Не удалось отправить фото в Telegram:", err);
+    }
+  }
+
+  async function sendTypingAction(chatId: number) {
+    try {
+      await fetch(`https://api.telegram.org/bot${botCfg!.bot_token}/sendChatAction`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: chatId, action: "typing" }),
+      });
+    } catch {
+      // не критично
     }
   }
 
@@ -104,6 +118,16 @@ export async function POST(req: NextRequest, { params }: { params: { workspaceId
 
   const hasBalance = (workspace?.balance ?? 0) > 0;
 
+  // Диагностика в логах Vercel (Deployments -> Functions -> Logs) — помогает быстро найти
+  // причину, если ИИ вдруг перестал отвечать в реальном Telegram
+  console.log("[telegram-webhook] workspace:", workspaceId, {
+    hasPrompt: Boolean(aiConfig?.prompt?.trim()),
+    balance: workspace?.balance ?? null,
+    hasBalance,
+    provider: aiConfig?.provider,
+    autoReply: aiConfig?.auto_reply,
+  });
+
   if (aiConfig?.prompt?.trim() && hasBalance) {
     const { data: history } = await supabaseAdmin
       .from("inbox_messages")
@@ -125,8 +149,11 @@ export async function POST(req: NextRequest, { params }: { params: { workspaceId
     const provider: LLMProvider = aiConfig.provider === "openai" ? "openai" : "anthropic";
     const result = await generateLLMReply(provider, systemPrompt, conversationHistory);
 
+    if (!result) {
+      console.error("[telegram-webhook] LLM call returned null — проверь ключ провайдера и баланс у самого провайдера");
+    }
+
     if (result) {
-      // Списываем с баланса ровно то, что реально стоил этот ответ (с наценкой), и логируем
       const cost = calculateCostKzt(provider, result.inputTokens, result.outputTokens);
       await supabaseAdmin
         .from("workspaces")
@@ -141,7 +168,26 @@ export async function POST(req: NextRequest, { params }: { params: { workspaceId
       });
 
       if (aiConfig.auto_reply) {
-        await sendTelegramMessage(chatId, result.text);
+        // Расширения поведения — делают переписку менее "ботовской"
+        const replyDelay = Math.min(Number(aiConfig.reply_delay_seconds) || 0, 15) * 1000;
+        if (replyDelay > 0) await delay(replyDelay);
+
+        if (aiConfig.typing_simulation) {
+          await sendTypingAction(chatId);
+          const typingDelay = Math.min(result.text.length * 40, 4000);
+          await delay(typingDelay);
+        }
+
+        if (aiConfig.split_long_messages && result.text.includes("\n\n")) {
+          const chunks = result.text.split("\n\n").filter((c: string) => c.trim());
+          for (const chunk of chunks) {
+            await sendTelegramMessage(chatId, chunk.trim());
+            if (chunks.indexOf(chunk) < chunks.length - 1) await delay(700);
+          }
+        } else {
+          await sendTelegramMessage(chatId, result.text);
+        }
+
         await supabaseAdmin.from("inbox_messages").insert({
           workspace_id: workspaceId,
           channel: "telegram",
