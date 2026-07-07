@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getOrCreateWorkspace } from "@/lib/workspace";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -15,6 +16,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
 
@@ -38,20 +40,30 @@ export default function ProfilePage() {
         return;
       }
       setEmail(user.email || "");
-      setName((user.user_metadata?.full_name as string) || "");
       setPhone((user.user_metadata?.phone as string) || "");
+
+      const workspace = await getOrCreateWorkspace(user.id, user.email?.split("@")[0] || "Мебельный цех");
+      if (workspace) {
+        setWorkspaceId(workspace.id);
+        setName(workspace.name);
+      }
       setLoading(false);
     }
     load();
   }, [router]);
 
   async function handleSaveProfile() {
-    if (!supabase) return;
+    if (!supabase || !workspaceId) return;
     setSavingProfile(true);
     setProfileMsg(null);
-    const { error } = await supabase.auth.updateUser({ data: { full_name: name, phone } });
+
+    const [{ error: wsError }, { error: userError }] = await Promise.all([
+      supabase.from("workspaces").update({ name }).eq("id", workspaceId),
+      supabase.auth.updateUser({ data: { phone } }),
+    ]);
+
     setSavingProfile(false);
-    setProfileMsg(error ? error.message : t("profile.saved"));
+    setProfileMsg(wsError?.message || userError?.message || t("profile.saved"));
   }
 
   async function handleChangePassword() {

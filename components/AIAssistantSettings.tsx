@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AIConfig, AIPhoto } from "@/lib/types";
 import { DEFAULT_AI_PROMPT } from "@/lib/defaultPrompt";
 import { useLanguage } from "@/lib/LanguageContext";
+import { supabase } from "@/lib/supabase";
 
 export default function AIAssistantSettings({
   config,
@@ -32,6 +33,33 @@ export default function AIAssistantSettings({
   const [photoKeywords, setPhotoKeywords] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [photoCaption, setPhotoCaption] = useState("");
+
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function handleTest() {
+    if (!supabase) return;
+    setTesting(true);
+    setTestResult(null);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/ai-test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({ prompt, knowledgeBase }),
+      });
+      const json = await res.json();
+      setTestResult(res.ok ? { ok: true, text: json.reply } : { ok: false, text: json.error });
+    } catch {
+      setTestResult({ ok: false, text: t("ai.testNetworkError") });
+    }
+    setTesting(false);
+  }
 
   function handleAddPhoto() {
     if (!photoKeywords.trim() || !photoUrl.trim()) return;
@@ -93,23 +121,41 @@ export default function AIAssistantSettings({
             />
             <p className="text-xs text-ink/40 mb-4">{t("ai.promptNote")}</p>
 
-            <div className="flex items-center justify-between border border-line rounded-lg px-3 py-2.5 mb-1">
+            <div className="flex items-center justify-between border border-line rounded-lg px-3 py-2.5 mb-4">
               <div>
                 <div className="text-sm font-medium">{t("ai.autoReply")}</div>
                 <div className="text-xs text-ink/50">{t("ai.autoReplyNote")}</div>
               </div>
-              <label className="inline-flex items-center cursor-pointer shrink-0">
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
                 <input
                   type="checkbox"
                   checked={autoReply}
                   onChange={(e) => setAutoReply(e.target.checked)}
                   className="sr-only peer"
                 />
-                <span className="w-11 h-6 rounded-full bg-line peer-checked:bg-oak transition-colors relative">
-                  <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-surface shadow-sm transition-transform peer-checked:translate-x-5" />
-                </span>
+                <span className="w-11 h-6 rounded-full bg-line peer-checked:bg-oak transition-colors" />
+                <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-surface shadow-sm transition-transform peer-checked:translate-x-5" />
               </label>
             </div>
+
+            <button
+              type="button"
+              onClick={handleTest}
+              disabled={testing}
+              className="w-full border border-line rounded-lg py-2 text-sm font-medium hover:bg-paper disabled:opacity-50"
+            >
+              {testing ? t("ai.testing") : t("ai.test")}
+            </button>
+
+            {testResult && (
+              <div
+                className={`mt-2 text-sm rounded-lg px-3 py-2 ${
+                  testResult.ok ? "bg-pine/10 text-pine" : "bg-rust/10 text-rust"
+                }`}
+              >
+                {testResult.ok ? `💬 ${testResult.text}` : testResult.text}
+              </div>
+            )}
           </>
         )}
 
