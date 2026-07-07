@@ -41,14 +41,24 @@ export interface Order {
 }
 
 export type Channel = "whatsapp" | "telegram" | "phone" | "site";
+export type Direction = "in" | "out";
 
 export interface InboxMessage {
   id: string;
   channel: Channel;
+  chat_id: number | null;
+  direction: Direction;
   client_name: string;
   text: string;
   ai_suggestion: string;
   created_at?: string;
+}
+
+export interface AIConfig {
+  bot_name: string;
+  description: string;
+  prompt: string;
+  auto_reply: boolean;
 }
 
 export const STAGES: { id: Stage; label: string }[] = [

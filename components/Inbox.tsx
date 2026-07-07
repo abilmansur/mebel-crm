@@ -1,7 +1,9 @@
 "use client";
 
 import { InboxMessage, Channel } from "@/lib/types";
+import { buildConversations, Conversation } from "@/lib/conversations";
 import { useLanguage } from "@/lib/LanguageContext";
+import TelegramConnect from "@/components/TelegramConnect";
 
 const channelLabel: Record<Channel, string> = {
   whatsapp: "WhatsApp",
@@ -12,37 +14,53 @@ const channelLabel: Record<Channel, string> = {
 
 export default function Inbox({
   messages,
-  onConvert,
+  onOpenConversation,
+  onRefresh,
+  workspaceId,
 }: {
   messages: InboxMessage[];
-  onConvert: (msg: InboxMessage) => void;
+  onOpenConversation: (conversation: Conversation) => void;
+  onRefresh: () => void;
+  workspaceId: string | null;
 }) {
   const { t } = useLanguage();
-
-  if (messages.length === 0) {
-    return <p className="text-sm text-ink/50 py-6">{t("inbox.empty")}</p>;
-  }
+  const conversations = buildConversations(messages);
 
   return (
     <div>
-      {messages.map((m) => (
-        <div key={m.id} className="flex gap-3 py-3 border-b border-line items-start">
-          <div className="w-7 h-7 rounded-full bg-paper flex items-center justify-center text-xs shrink-0 font-medium text-ink/60">
-            {channelLabel[m.channel][0]}
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-medium">{m.client_name}</div>
-            <div className="text-sm text-ink/70 mt-0.5 mb-1.5">{m.text}</div>
-            <div className="text-xs bg-paper rounded-lg px-2.5 py-2 text-ink/60">{m.ai_suggestion}</div>
-          </div>
+      <TelegramConnect workspaceId={workspaceId} />
+
+      <div className="flex justify-end mb-2">
+        <button onClick={onRefresh} className="text-xs text-ink/50 hover:text-ink flex items-center gap-1">
+          ↻ {t("inbox.refresh")}
+        </button>
+      </div>
+
+      {conversations.length === 0 ? (
+        <p className="text-sm text-ink/50 py-6">{t("inbox.empty")}</p>
+      ) : (
+        conversations.map((c) => (
           <button
-            onClick={() => onConvert(m)}
-            className="text-sm border border-line rounded-lg px-3 py-1.5 whitespace-nowrap hover:bg-paper"
+            key={c.key}
+            onClick={() => onOpenConversation(c)}
+            className="w-full flex gap-3 py-3 border-b border-line items-start text-left hover:bg-paper/60 rounded-lg px-1"
           >
-            {t("inbox.toOrder")}
+            <div className="w-7 h-7 rounded-full bg-paper flex items-center justify-center text-xs shrink-0 font-medium text-ink/60">
+              {channelLabel[c.channel][0]}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium">{c.clientName}</div>
+              <div className="text-sm text-ink/70 mt-0.5 truncate">
+                {c.lastMessage.direction === "out" ? `${t("inbox.you")}: ` : ""}
+                {c.lastMessage.text}
+              </div>
+              {c.lastMessage.ai_suggestion && (
+                <div className="text-xs text-oak mt-0.5">💡 {t("ai.suggestionReady")}</div>
+              )}
+            </div>
           </button>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }

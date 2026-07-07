@@ -4,15 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { getOrCreateWorkspace } from "@/lib/workspace";
-import { Material, Order, InboxMessage, Stage, Extra } from "@/lib/types";
+import { Material, Order, InboxMessage, Stage, Extra, AIConfig } from "@/lib/types";
 import { calcOrderTotal } from "@/lib/calculator";
 import { demoMaterials, buildDemoOrders, demoInbox } from "@/lib/demoData";
+import { Conversation } from "@/lib/conversations";
 import Inbox from "@/components/Inbox";
 import Board from "@/components/Board";
 import Analytics from "@/components/Analytics";
 import OrderModal from "@/components/OrderModal";
 import MaterialSettings from "@/components/MaterialSettings";
+import AIAssistantSettings from "@/components/AIAssistantSettings";
+import ConversationThread from "@/components/ConversationThread";
 import { useLanguage } from "@/lib/LanguageContext";
+
+const emptyAIConfig: AIConfig = { bot_name: "", description: "", prompt: "", auto_reply: false };
 
 export default function Home() {
   const router = useRouter();
@@ -23,6 +28,10 @@ export default function Home() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
+  const [aiConfig, setAIConfig] = useState<AIConfig>(emptyAIConfig);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [sendingReply, setSendingReply] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [prefillClient, setPrefillClient] = useState<string | undefined>(undefined);
@@ -58,11 +67,21 @@ export default function Home() {
       setWorkspaceId(workspace.id);
       setWorkspaceName(workspace.name);
 
-      const [{ data: mats }, { data: ords }, { data: msgs }] = await Promise.all([
+      const [{ data: mats }, { data: ords }, { data: msgs }, { data: aiCfg }] = await Promise.all([
         supabase.from("materials").select("*").eq("workspace_id", workspace.id),
         supabase.from("orders").select("*").eq("workspace_id", workspace.id),
         supabase.from("inbox_messages").select("*").eq("workspace_id", workspace.id),
+        supabase.from("ai_config").select("*").eq("workspace_id", workspace.id).maybeSingle(),
       ]);
+
+      if (aiCfg) {
+        setAIConfig({
+          bot_name: aiCfg.bot_name || "",
+          description: aiCfg.description || "",
+          prompt: aiCfg.prompt || "",
+          auto_reply: aiCfg.auto_reply || false,
+        });
+      }
 
       const loadedMaterials = mats && mats.length ? mats : demoMaterials;
       setMaterials(loadedMaterials);
@@ -271,14 +290,75 @@ export default function Home() {
     }
   }
 
-  async function handleConvertMessage(msg: InboxMessage) {
-    setInbox((prev) => prev.filter((m) => m.id !== msg.id));
-    setPrefillClient(msg.client_name);
+  async function handleRefreshInbox() {
+    if (!isSupabaseConfigured || !supabase || !workspaceId) return;
+    const { data: msgs } = await supabase
+      .from("inbox_messages")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .order("created_at", { ascending: false });
+    setInbox(msgs || []);
+  }
+
+  function handleOpenConversation(conversation: Conversation) {
+    setActiveConversation(conversation);
+  }
+
+  async function handleSendReply(text: string) {
+    if (!activeConversation || !supabase || !workspaceId) return;
+    setSendingReply(true);
+
+    // Оптимистично показываем сообщение сразу, не дожидаясь ответа сервера
+    const optimisticMsg: InboxMessage = {
+      id: crypto.randomUUID(),
+      channel: "telegram",
+      chat_id: activeConversation.chatId,
+      direction: "out",
+      client_name: activeConversation.clientName,
+      text,
+      ai_suggestion: "",
+    };
+    setInbox((prev) => [...prev, optimisticMsg]);
+    setActiveConversation((prev) => (prev ? { ...prev, messages: [...prev.messages, optimisticMsg] } : prev));
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    try {
+      await fetch("/api/send-reply", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          workspaceId,
+          chatId: activeConversation.chatId,
+          text,
+          clientName: activeConversation.clientName,
+        }),
+      });
+    } catch (err) {
+      console.error("Не удалось отправить ответ:", err);
+    }
+    setSendingReply(false);
+  }
+
+  function handleCreateOrderFromConversation() {
+    if (!activeConversation) return;
+    setPrefillClient(activeConversation.clientName);
     setEditingOrder(null);
     setNewOrderStage("new");
+    setActiveConversation(null);
     setShowOrderModal(true);
-    if (isSupabaseConfigured && supabase) {
-      await supabase.from("inbox_messages").delete().eq("id", msg.id);
+  }
+
+  async function handleSaveAIConfig(data: AIConfig) {
+    setAIConfig(data);
+    setShowAIAssistant(false);
+    if (isSupabaseConfigured && supabase && workspaceId) {
+      await supabase.from("ai_config").upsert({ workspace_id: workspaceId, ...data });
     }
   }
 
@@ -303,6 +383,14 @@ export default function Home() {
             title={t("nav.settings")}
           >
             ⚙
+          </button>
+          <button
+            className="w-9 h-9 border border-line rounded-lg flex items-center justify-center"
+            onClick={() => setShowAIAssistant(true)}
+            aria-label={t("nav.aiAssistant")}
+            title={t("nav.aiAssistant")}
+          >
+            🤖
           </button>
           <button
             className="bg-accent text-accent-ink rounded-lg px-3 sm:px-4 py-2 text-sm font-medium whitespace-nowrap"
@@ -359,7 +447,14 @@ export default function Home() {
         </button>
       </div>
 
-      {tab === "inbox" && <Inbox messages={inbox} onConvert={handleConvertMessage} />}
+      {tab === "inbox" && (
+        <Inbox
+          messages={inbox}
+          onOpenConversation={handleOpenConversation}
+          onRefresh={handleRefreshInbox}
+          workspaceId={workspaceId}
+        />
+      )}
       {tab === "board" && (
         <Board
           orders={orders}
@@ -393,6 +488,24 @@ export default function Home() {
           onUpdate={handleUpdateMaterial}
           onAdd={handleAddMaterial}
           onDelete={handleDeleteMaterial}
+        />
+      )}
+
+      {showAIAssistant && (
+        <AIAssistantSettings
+          config={aiConfig}
+          onClose={() => setShowAIAssistant(false)}
+          onSave={handleSaveAIConfig}
+        />
+      )}
+
+      {activeConversation && (
+        <ConversationThread
+          conversation={activeConversation}
+          onClose={() => setActiveConversation(null)}
+          onSend={handleSendReply}
+          onCreateOrder={handleCreateOrderFromConversation}
+          sending={sendingReply}
         />
       )}
     </div>

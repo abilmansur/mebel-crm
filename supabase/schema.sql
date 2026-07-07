@@ -64,10 +64,31 @@ create table inbox_messages (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid references workspaces(id) not null,
   channel text not null check (channel in ('whatsapp', 'telegram', 'phone', 'site')),
+  chat_id bigint,                                -- id чата в канале (Telegram), для threading и ответа
+  direction text not null default 'in' check (direction in ('in', 'out')),
   client_name text not null,
   text text not null,
   ai_suggestion text,
   created_at timestamptz default now()
+);
+
+-- Настройки ИИ-ассистента, по одному на цех
+create table ai_config (
+  workspace_id uuid primary key references workspaces(id),
+  bot_name text default '',
+  description text default '',
+  prompt text default '',
+  auto_reply boolean not null default false,
+  updated_at timestamptz default now()
+);
+
+-- Каждый цех подключает своего Telegram-бота своим токеном (полученным у @BotFather)
+create table telegram_bots (
+  workspace_id uuid primary key references workspaces(id),
+  bot_token text not null,
+  bot_username text,
+  webhook_secret text not null,
+  connected_at timestamptz default now()
 );
 
 -- RLS: пользователь видит только workspace, где он owner
@@ -76,6 +97,8 @@ alter table clients enable row level security;
 alter table orders enable row level security;
 alter table materials enable row level security;
 alter table inbox_messages enable row level security;
+alter table telegram_bots enable row level security;
+alter table ai_config enable row level security;
 
 create policy "own_workspace" on workspaces
   for all using (owner_id = auth.uid());
@@ -90,6 +113,12 @@ create policy "workspace_isolation_materials" on materials
   for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
 
 create policy "workspace_isolation_inbox" on inbox_messages
+  for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
+
+create policy "workspace_isolation_telegram_bots" on telegram_bots
+  for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
+
+create policy "workspace_isolation_ai_config" on ai_config
   for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
 
 -- Ничего вручную вставлять не нужно: workspace и стартовые материалы
