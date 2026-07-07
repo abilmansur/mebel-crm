@@ -5,7 +5,12 @@ export interface Workspace {
   id: string;
   name: string;
   owner_id: string;
+  balance: number;
 }
+
+// Пробный баланс, который получает новый цех при регистрации — хватит на несколько
+// ответов ИИ, чтобы попробовать не пополняя сразу
+const TRIAL_BALANCE_KZT = Number(process.env.NEXT_PUBLIC_TRIAL_BALANCE_KZT || 500);
 
 // При первом входе пользователя у него ещё нет workspace — создаём автоматически
 // и засеваем стартовые материалы (ЛДСП/МДФ), чтобы калькулятор сразу работал.
@@ -22,7 +27,7 @@ export async function getOrCreateWorkspace(userId: string, workspaceName: string
 
   const { data: created, error } = await supabase
     .from("workspaces")
-    .insert({ name: workspaceName, owner_id: userId })
+    .insert({ name: workspaceName, owner_id: userId, balance: TRIAL_BALANCE_KZT })
     .select()
     .single();
 

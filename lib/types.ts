@@ -60,6 +60,7 @@ export interface AIConfig {
   description: string;
   prompt: string;
   knowledge_base: string;
+  provider: "anthropic" | "openai";
   auto_reply: boolean;
 }
 

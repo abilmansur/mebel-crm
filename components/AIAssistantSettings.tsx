@@ -28,6 +28,7 @@ export default function AIAssistantSettings({
   const [description, setDescription] = useState(config.description);
   const [prompt, setPrompt] = useState(config.prompt || DEFAULT_AI_PROMPT);
   const [knowledgeBase, setKnowledgeBase] = useState(config.knowledge_base);
+  const [provider, setProvider] = useState<"anthropic" | "openai">(config.provider || "anthropic");
   const [autoReply, setAutoReply] = useState(config.auto_reply);
 
   const [photoKeywords, setPhotoKeywords] = useState("");
@@ -51,7 +52,7 @@ export default function AIAssistantSettings({
           "Content-Type": "application/json",
           Authorization: `Bearer ${session?.access_token || ""}`,
         },
-        body: JSON.stringify({ prompt, knowledgeBase }),
+        body: JSON.stringify({ prompt, knowledgeBase, provider }),
       });
       const json = await res.json();
       setTestResult(res.ok ? { ok: true, text: json.reply } : { ok: false, text: json.error });
@@ -120,6 +121,22 @@ export default function AIAssistantSettings({
               onChange={(e) => setPrompt(e.target.value)}
             />
             <p className="text-xs text-ink/40 mb-4">{t("ai.promptNote")}</p>
+
+            <label className="text-sm text-ink/60 block mb-1">{t("ai.provider")}</label>
+            <div className="flex gap-1 bg-paper rounded-lg p-1 mb-4 w-fit">
+              {(["anthropic", "openai"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setProvider(p)}
+                  className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                    provider === p ? "bg-surface font-medium shadow-sm" : "text-ink/50"
+                  }`}
+                >
+                  {p === "anthropic" ? "Claude" : "OpenAI"}
+                </button>
+              ))}
+            </div>
 
             <div className="flex items-center justify-between border border-line rounded-lg px-3 py-2.5 mb-4">
               <div>
@@ -238,7 +255,14 @@ export default function AIAssistantSettings({
           type="button"
           className="w-full bg-accent text-accent-ink rounded-lg py-2.5 font-medium mt-4"
           onClick={() =>
-            onSave({ bot_name: botName, description, prompt, knowledge_base: knowledgeBase, auto_reply: autoReply })
+            onSave({
+              bot_name: botName,
+              description,
+              prompt,
+              knowledge_base: knowledgeBase,
+              provider,
+              auto_reply: autoReply,
+            })
           }
         >
           {t("profile.save")}

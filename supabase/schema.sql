@@ -7,6 +7,7 @@ create table workspaces (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   owner_id uuid references auth.users(id) not null,
+  balance numeric not null default 0,             -- баланс в тенге, списывается за каждый ответ ИИ
   created_at timestamptz default now()
 );
 
@@ -80,8 +81,31 @@ create table ai_config (
   description text default '',
   prompt text default '',
   knowledge_base text default '',                -- факты: цены, сроки, частые вопросы-ответы
+  provider text not null default 'anthropic' check (provider in ('anthropic', 'openai')),
   auto_reply boolean not null default false,
   updated_at timestamptz default now()
+);
+
+-- Лог расхода ИИ — сколько токенов и денег ушло на каждый ответ
+create table ai_usage_log (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid references workspaces(id) not null,
+  provider text not null,
+  input_tokens integer not null default 0,
+  output_tokens integer not null default 0,
+  cost_kzt numeric not null default 0,
+  created_at timestamptz default now()
+);
+
+-- Пополнения баланса через CloudPayments
+create table balance_topups (
+  id uuid primary key default gen_random_uuid(),
+  workspace_id uuid references workspaces(id) not null,
+  amount numeric not null,
+  status text not null default 'pending' check (status in ('pending', 'completed', 'failed')),
+  provider text default 'cloudpayments',
+  external_id text,
+  created_at timestamptz default now()
 );
 
 -- Примеры фото, которые бот может отправлять по ключевым словам
@@ -112,6 +136,8 @@ alter table inbox_messages enable row level security;
 alter table telegram_bots enable row level security;
 alter table ai_config enable row level security;
 alter table ai_photos enable row level security;
+alter table ai_usage_log enable row level security;
+alter table balance_topups enable row level security;
 
 create policy "own_workspace" on workspaces
   for all using (owner_id = auth.uid());
@@ -135,6 +161,12 @@ create policy "workspace_isolation_ai_config" on ai_config
   for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
 
 create policy "workspace_isolation_ai_photos" on ai_photos
+  for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
+
+create policy "workspace_isolation_ai_usage_log" on ai_usage_log
+  for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
+
+create policy "workspace_isolation_balance_topups" on balance_topups
   for all using (workspace_id in (select id from workspaces where owner_id = auth.uid()));
 
 -- Ничего вручную вставлять не нужно: workspace и стартовые материалы

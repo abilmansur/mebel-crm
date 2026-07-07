@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { generateAIReply } from "@/lib/claude";
+import { generateLLMReply, LLMProvider } from "@/lib/llm";
+import { calculateCostKzt } from "@/lib/pricing";
 import { findMatchingPhoto } from "@/lib/photoMatch";
 
 export async function POST(req: NextRequest, { params }: { params: { workspaceId: string } }) {
@@ -82,13 +83,18 @@ export async function POST(req: NextRequest, { params }: { params: { workspaceId
     .select()
     .single();
 
-  // Подходящее фото отправляем независимо от режима ИИ — это низкорисковое действие
-  // (просто пример работы из портфолио), в отличие от текстового ответа
+  // Подходящее фото отправляем независимо от баланса и режима ИИ — низкорисковое действие
   const { data: photos } = await supabaseAdmin.from("ai_photos").select("*").eq("workspace_id", workspaceId);
   const matchedPhoto = photos?.length ? findMatchingPhoto(text, photos as any) : null;
   if (matchedPhoto) {
     await sendTelegramPhoto(chatId, matchedPhoto.image_url, matchedPhoto.caption);
   }
+
+  const { data: workspace } = await supabaseAdmin
+    .from("workspaces")
+    .select("balance")
+    .eq("id", workspaceId)
+    .maybeSingle();
 
   const { data: aiConfig } = await supabaseAdmin
     .from("ai_config")
@@ -96,7 +102,9 @@ export async function POST(req: NextRequest, { params }: { params: { workspaceId
     .eq("workspace_id", workspaceId)
     .maybeSingle();
 
-  if (aiConfig?.prompt?.trim()) {
+  const hasBalance = (workspace?.balance ?? 0) > 0;
+
+  if (aiConfig?.prompt?.trim() && hasBalance) {
     const { data: history } = await supabaseAdmin
       .from("inbox_messages")
       .select("text, direction")
@@ -110,33 +118,48 @@ export async function POST(req: NextRequest, { params }: { params: { workspaceId
       content: m.text,
     }));
 
-    // База знаний (факты: цены, сроки, FAQ) добавляется к промпту личности отдельным блоком —
-    // так легче редактировать одно без другого
     const systemPrompt = aiConfig.knowledge_base?.trim()
       ? `${aiConfig.prompt}\n\n---\nБаза знаний (факты о цехе, используй для ответов):\n${aiConfig.knowledge_base}`
       : aiConfig.prompt;
 
-    const reply = await generateAIReply(systemPrompt, conversationHistory);
+    const provider: LLMProvider = aiConfig.provider === "openai" ? "openai" : "anthropic";
+    const result = await generateLLMReply(provider, systemPrompt, conversationHistory);
 
-    if (reply) {
+    if (result) {
+      // Списываем с баланса ровно то, что реально стоил этот ответ (с наценкой), и логируем
+      const cost = calculateCostKzt(provider, result.inputTokens, result.outputTokens);
+      await supabaseAdmin
+        .from("workspaces")
+        .update({ balance: (workspace?.balance ?? 0) - cost })
+        .eq("id", workspaceId);
+      await supabaseAdmin.from("ai_usage_log").insert({
+        workspace_id: workspaceId,
+        provider,
+        input_tokens: result.inputTokens,
+        output_tokens: result.outputTokens,
+        cost_kzt: cost,
+      });
+
       if (aiConfig.auto_reply) {
-        await sendTelegramMessage(chatId, reply);
+        await sendTelegramMessage(chatId, result.text);
         await supabaseAdmin.from("inbox_messages").insert({
           workspace_id: workspaceId,
           channel: "telegram",
           chat_id: chatId,
           direction: "out",
           client_name: clientName,
-          text: reply,
+          text: result.text,
           ai_suggestion: "",
         });
       } else if (insertedMsg) {
-        await supabaseAdmin.from("inbox_messages").update({ ai_suggestion: reply }).eq("id", insertedMsg.id);
+        await supabaseAdmin.from("inbox_messages").update({ ai_suggestion: result.text }).eq("id", insertedMsg.id);
       }
       return NextResponse.json({ ok: true });
     }
   }
 
+  // Баланс закончился, ИИ не настроен, или произошла ошибка вызова — обычное автоподтверждение,
+  // мастер отвечает вручную
   await sendTelegramMessage(chatId, "Спасибо! Ваше сообщение передано мастеру, он скоро ответит.");
 
   return NextResponse.json({ ok: true });

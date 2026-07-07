@@ -16,9 +16,18 @@ import MaterialSettings from "@/components/MaterialSettings";
 import AIAssistantSettings from "@/components/AIAssistantSettings";
 import ConversationThread from "@/components/ConversationThread";
 import ChannelsSettings from "@/components/ChannelsSettings";
+import BalanceModal from "@/components/BalanceModal";
+import { formatMoney } from "@/lib/format";
 import { useLanguage } from "@/lib/LanguageContext";
 
-const emptyAIConfig: AIConfig = { bot_name: "", description: "", prompt: "", knowledge_base: "", auto_reply: false };
+const emptyAIConfig: AIConfig = {
+  bot_name: "",
+  description: "",
+  prompt: "",
+  knowledge_base: "",
+  provider: "anthropic",
+  auto_reply: false,
+};
 const INBOX_POLL_INTERVAL_MS = 8000;
 
 export default function Home() {
@@ -27,6 +36,9 @@ export default function Home() {
   const [tab, setTab] = useState<"inbox" | "board" | "analytics" | "channels">("inbox");
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState("Мебельный цех");
+  const [balance, setBalance] = useState(0);
+  const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
+  const [showBalance, setShowBalance] = useState(false);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
@@ -61,6 +73,7 @@ export default function Home() {
         router.push("/login");
         return;
       }
+      setUserEmail(user.email || undefined);
 
       const workspace = await getOrCreateWorkspace(user.id, user.email?.split("@")[0] || "Мебельный цех");
       if (!workspace) {
@@ -69,6 +82,7 @@ export default function Home() {
       }
       setWorkspaceId(workspace.id);
       setWorkspaceName(workspace.name);
+      setBalance(workspace.balance || 0);
 
       const [{ data: mats }, { data: ords }, { data: msgs }, { data: aiCfg }, { data: photos }] = await Promise.all([
         supabase.from("materials").select("*").eq("workspace_id", workspace.id),
@@ -84,6 +98,7 @@ export default function Home() {
           description: aiCfg.description || "",
           prompt: aiCfg.prompt || "",
           knowledge_base: aiCfg.knowledge_base || "",
+          provider: aiCfg.provider === "openai" ? "openai" : "anthropic",
           auto_reply: aiCfg.auto_reply || false,
         });
       }
@@ -122,6 +137,7 @@ export default function Home() {
     if (!isSupabaseConfigured || !workspaceId) return;
     const interval = setInterval(() => {
       handleRefreshInbox();
+      handleRefreshBalance();
     }, INBOX_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -417,6 +433,12 @@ export default function Home() {
     }
   }
 
+  async function handleRefreshBalance() {
+    if (!isSupabaseConfigured || !supabase || !workspaceId) return;
+    const { data } = await supabase.from("workspaces").select("balance").eq("id", workspaceId).maybeSingle();
+    if (data) setBalance(data.balance || 0);
+  }
+
   async function handleLogout() {
     if (supabase) await supabase.auth.signOut();
     router.push("/login");
@@ -431,6 +453,17 @@ export default function Home() {
       <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
         <span className="text-base font-medium">{workspaceName}</span>
         <div className="flex flex-wrap items-center gap-2">
+          {isSupabaseConfigured && (
+            <button
+              onClick={() => setShowBalance(true)}
+              className={`h-9 px-3 rounded-lg border text-sm font-mono font-medium whitespace-nowrap ${
+                balance <= 0 ? "border-rust/40 text-rust bg-rust/5" : "border-line"
+              }`}
+              title={t("balance.title")}
+            >
+              {formatMoney(balance)}
+            </button>
+          )}
           <button
             className="w-9 h-9 border border-line rounded-lg flex items-center justify-center"
             onClick={() => setShowSettings(true)}
@@ -566,6 +599,16 @@ export default function Home() {
           onSend={handleSendReply}
           onCreateOrder={handleCreateOrderFromConversation}
           sending={sendingReply}
+        />
+      )}
+
+      {showBalance && workspaceId && (
+        <BalanceModal
+          balance={balance}
+          workspaceId={workspaceId}
+          email={userEmail}
+          onClose={() => setShowBalance(false)}
+          onRefresh={handleRefreshBalance}
         />
       )}
     </div>
